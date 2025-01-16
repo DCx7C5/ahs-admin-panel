@@ -1,0 +1,77 @@
+# Connects over unix sockets to databases, provides ports for IDE
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_DB: "${DB_NAME:-ahs-dev}"
+      POSTGRES_USER: "${DB_USER:-ahs}"
+      POSTGRES_PASSWORD: "${DB_PASS:-ahs}"
+    tty: true
+    ports:
+      - "5442:5432"  # only for IDE
+    volumes:
+      - postgres-data:/var/js/postgresql/data/
+      - postgres-socket:/var/run/postgresql/
+
+  node:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    tty: true
+    container_name: node
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - .:/project
+
+  redis:
+    build:
+      context: .
+      dockerfile: docker/redis/Dockerfile
+    container_name: redis
+    command: redis-server /etc/redis.conf
+    ports:
+      - "6399:6379"
+    tty: true
+    volumes:
+      - .:/project
+      - redis-data:/var/js/redis/
+      - redis-socket:/tmp/redis/
+
+
+  django:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+    command: bash -c "python3 manage.py runserver 0.0.0.0:8000"
+    container_name: django
+    tty: true
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/project
+      - postgres-socket:/var/run/postgresql/
+      - redis-socket:/tmp/redis/
+    environment:
+      SECRET_KEY: "${SECRET_KEY}"
+      DB_USER: "${DB_USER:-ahs-dev}"
+      DB_PASS: "${DB_PASS:-ahs}"
+      DB_NAME: "${DB_NAME:-ahs}"
+      DB_HOST: "${DB_HOST}"  # leave empty to connect over socket
+      DB_PORT: "${DB_PORT}"  #
+      DJANGO_SETTINGS_MODULE: 'adminpanel.settings'
+      DB_BACKUP_ON_SHUTDOWN: 1
+      DB_RESTORE_ON_START: 0
+      DEBUG: "${DEBUG:-False}"
+    depends_on:
+      - postgres
+      - node
+      - redis
+
+volumes:
+  postgres-data:
+  postgres-socket:
+  redis-socket:
+  redis-data:

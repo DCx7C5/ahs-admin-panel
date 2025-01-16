@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "outDir": "build",
+    "module": "esnext",
+    "target": "ES2021",
+    "allowJs": true,
+    "baseUrl": "./",
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true
+  },
+  "include": ["js/**/*.js","js/**/*.jsx","js/**/*.tsx","js/**/*.ts"],
+  "exclude": ["node_modules", "build", "**/*.spec.ts"]
+}

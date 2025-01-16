@@ -1,0 +1,51 @@
+  .tab-button {
+        flex: 1; /* Equal size for all buttons */
+        max-width: max-content; /* Optional: Restrict button size */
+        max-height: 2rem; /* Optional: Restrict button size */
+        width: min-content; /* Fill parent container */
+        height: 100%;
+        border: none; /* Remove button borders */
+        display: flex; /* Align icon properly */
+        align-items: center; /* Center icon vertically */
+        justify-content: center; /* Center icon horizontally */
+        background-color: black;
+        color: #484c54;
+        border-bottom: #484c54;
+        border-bottom-style: solid;
+        border-bottom-width: thin;
+        font-size: 1rem;
+        padding-left: 0.5rem;
+
+    &:hover {
+      background-color: #343a40; /* Background color when hovered */
+      cursor: pointer;
+    }
+
+    &.active {
+      color: white;
+      font-weight: normal;
+      border-bottom: thin solid white;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    .tab-close-button {
+      margin-left: 0.3rem;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #fffff0; /* Default color */
+      border-left: 1px solid #1E1E1EFF;
+      border-right: 1px solid #1E1E1EFF;
+      transition: all 0.25s ease;
+
+      &:hover {
+        color: #ff0000; /* Hover color change */
+        transition: all 0.24s ease;
+        cursor: pointer;
+      }
+    }
+  }

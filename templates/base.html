@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+{% load webpack_static render_bundle from webpack_loader %}
+{% load static i18n ahs_core %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE|default:'en_us' }}">
+<head>
+  {% block preload_outer %}
+      {% render_bundle 'index' 'css' is_preload=True %}
+      {% block preload %}{% endblock %}
+  {% endblock preload_outer %}
+  {# -- Page title -- #}
+  {% block title_outer %}
+    <title>
+      {% block title %}AHS{% endblock %}
+      {% block page_name %}{% endblock %}
+    </title>
+  {% endblock %}
+  {# -- Required meta tags -- #}
+  {% block meta_outer %}
+    <link rel="icon" href="{% webpack_static 'assets/favicon.ico' %}" type="image/ico">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-COMPATIBLE" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  {% endblock %}
+  {% block stylesheets_outer %}
+    {% render_bundle 'index' 'css' %}
+    {% block stylesheets %}{% endblock %}
+  {% endblock %}
+  {% block javascript_head %}{% endblock %}
+  {{ AHS_SERIAL_USER|json_script:"user-data" }}
+  {{ MENU_ITEMS|json_script:"menu-data" }}
+  {% block extra_head %}{% endblock extra_head %}
+
+</head>
+{% block full_body %}
+<body class="">
+{% block body %}
+    <div id="root-wrapper">
+        {% navbar id='navheader' fixed=True %}
+        <div id="root">
+            {% block page_content_wrapper %}{% endblock %}
+        </div>
+    </div>
+{% endblock body %}
+{# -- scripts and other body elements here -- #}
+{% block javascript_bottom %}
+{% block js %}{% endblock %}
+  {% if user and user.is_superuser %}
+    {% block admin_js %}{% endblock %}
+  {% endif %}  
+{% endblock %}
+{% block extra_script %}{% endblock %}
+{% block extra_foot %}{% endblock %}
+</body>
+{% endblock full_body %}
+</html>

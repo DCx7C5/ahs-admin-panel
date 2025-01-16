@@ -1,0 +1,174 @@
+@import '../../../../node_modules/@xterm/xterm/css/xterm.css';
+
+#terminal-container {
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  transition: height 0.3s ease-in-out;
+
+  .slider {
+    z-index: 1000;
+    width: 100%;
+    display: flex;
+    position: relative;
+    cursor: row-resize;
+
+    .lip {
+      height: .5rem;
+      width: 7rem;
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+      border-radius: 38% 38% 0 0;
+      background-color: #0f0f10;
+      transition: box-shadow .3s, background-color .3s;
+      bottom: 0;
+      z-index: 1000;
+
+      &:hover {
+        cursor: row-resize;
+        box-shadow: 0 8px 16px rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
+
+  #terminal-wrapper {
+    position: relative;
+    z-index: 1000;
+    background-color: #484c54;
+    display: flex;
+    height: 100%;
+    border-top: #0f0f10 thin;
+
+
+    .term-taskbar {
+      width: 1.5rem;
+      min-width: 1.5rem;
+    }
+
+    .term-content {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      background-color: black;
+      position: relative;
+      z-index: 1000;
+      overflow: hidden;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+      min-width: 0;
+      min-height: 0;
+    }
+    .term-tabbar {
+      display: flex; /* Arrange the buttons horizontally */
+      align-items: center; /* Vertically center the buttons */
+      /*justify-content: space-between; /* Add space between the buttons */
+      background-color: black; /* Dark background for the tab bar */
+      padding-left: 0.5rem; /* Space around the buttons */
+      padding-top: 0;
+      padding-bottom: 0;
+      height: 2rem; /* Fixed height for the term-tabbar */
+
+      .tab-element {
+        flex: 1; /* Equal size for all buttons */
+        height: 100%; /* Fill parent container */
+        justify-content: center; /* Center icon horizontally */
+        display: flex; /* Align icon properly */
+
+      }
+
+      .tab-element:hover {
+        background-color: transparent;
+
+      }
+
+      .ctrl-button {
+        flex: 1; /* Equal size for all buttons */
+        max-width: 1.5rem; /* Optional: Restrict button size */
+        max-height: 2rem; /* Optional: Restrict button size */
+        width: 1.5rem; /* Fill parent container */
+        aspect-ratio: 1/1; /* Ensure it's always a square */
+        /*border-radius: 50%; /* Make the buttons circular */
+        /*background-color: #202020; /* Background color for the buttons */
+        font-size: 1.3rem;
+        color: #fff; /* Text/icon color */
+        border: none; /* Remove button borders */
+        align-items: center; /* Center icon vertically */
+        cursor: pointer; /* Show pointer cursor */
+        margin-right: 0.5rem;
+        padding: 0;
+      }
+
+      #new-tab-button {
+        color: #0cc10c;
+        font-size: 1.3rem;
+        font-weight: bold;
+              border-right: 1px solid #1E1E1EFF;
+
+      }
+
+      .ctrl-button#start-btn {
+        color: #0cc10c; /* Green background for start button */
+      }
+
+      .ctrl-button#stop-btn {
+        color: #ff0000; /* Red background for stop button */
+      }
+
+      .ctrl-button#stop-btn:disabled {
+        color: #484c54;
+
+      }
+
+      /* Hover Effects */
+      .ctrl-button:hover {
+        transform: scale(1.1); /* Slightly enlarge the button on hover */
+        background-color: #343a40;
+        transition: background-color 0.3s ease;
+      }
+      }
+    .term-taskbar-left {
+    }
+
+    .term-taskbar-right {
+    }
+  }
+}
+
+#terminal-toggle {
+  position: fixed;
+  right: .5rem;
+  z-index: 1000;
+  transition: width 0.3s ease-in-out, height 0.3s ease-in-out;
+
+  &-btn {
+    position: fixed;
+    right: .5rem;
+    font-size: 35px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+
+    &:checked {
+      cursor: row-resize;
+    }
+
+    &::before {
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+      transition: text-shadow 0.3s;
+    }
+
+    &:hover::before {
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &:hover {
+    width: 35px;
+    height: 52.5px;
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.26.0",
+    "@types/react": "^19.0.5",
+    "@types/react-dom": "^19.0.3",
+    "@xterm/addon-attach": "^0.11.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-serialize": "^0.13.0",
+    "@xterm/addon-unicode11": "^0.8.0",
+    "@xterm/addon-webgl": "^0.18.0",
+    "@xterm/xterm": "^5.5.0",
+    "axios": "^1.7.9",
+    "babel-loader": "^9.2.1",
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "css-loader": "^7.1.2",
+    "font-awesome": "^4.7.0",
+    "fork-ts-checker-webpack-plugin": "^9.0.2",
+    "html-webpack-plugin": "^5.6.3",
+    "mini-css-extract-plugin": "^2.9.2",
+    "prop-types": "^15.8.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
+    "sass": "^1.83.1",
+    "sass-loader": "^16.0.4",
+    "typescript": "^5.4.3",
+    "webpack": "^5.97.1",
+    "webpack-bundle-tracker": "^2.0.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.2",
+    "webpack-merge": "^5.10.0"
+  },
+  "scripts": {
+    "dev": "webpack serve --mode development --config webpack.config.js",
+    "start": "webpack serve --config webpack.config.js"
+  }
+}

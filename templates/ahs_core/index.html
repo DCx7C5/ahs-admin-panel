@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% load render_bundle from webpack_loader %}
+{% block page_content_wrapper %}
+  {% render_bundle 'index' 'js' %}
+{% endblock page_content_wrapper %}

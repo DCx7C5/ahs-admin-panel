@@ -1,0 +1,41 @@
+[
+  {
+    "model": "core.menuitem",
+    "pk": 1,
+    "fields": {
+      "name": "Dashboard",
+      "path": "/",
+      "icon": "bi bi-speedometer2",
+      "order": 1,
+      "active": true,
+      "app_label": "core",
+      "parent": null
+    }
+  },
+    {
+    "model": "core.menuitem",
+    "pk": 2,
+    "fields": {
+      "name": "Settings",
+      "path": "/settings/",
+      "icon": "bi bi-gear",
+      "order": 90,
+      "active": true,
+      "app_label": "core",
+      "parent": 1
+    }
+  },
+      {
+    "model": "core.menuitem",
+    "pk": 3,
+    "fields": {
+      "name": "X Api",
+      "path": "/xapi/",
+      "icon": "bi bi-twitter-x",
+      "order": 2,
+      "active": true,
+      "app_label": "xtwitter",
+      "parent": 1
+    }
+  }
+]

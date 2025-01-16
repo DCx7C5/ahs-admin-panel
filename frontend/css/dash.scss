@@ -1,0 +1,39 @@
+#dashboard {
+    padding: 0;
+
+  .controls {
+    height: 3em;
+    max-height: 3em;
+    margin: 0 10px 0 10px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    .rtclock {
+    }
+  }
+  .panel {
+    position: absolute;
+
+    width: 100%;  /* Expand to full width */
+    .widget {
+      background-color: #1a1d20;
+      max-width: 240px;
+      margin: .2rem .7rem .2rem .7rem;
+
+      .widget-header {
+        display: flex;
+      }
+    }
+  }
+
+  .bookmarks {
+    padding: 0;
+    margin: 0;
+
+    .bm-col {
+      background-color: #1a1d20;
+    }
+  }
+}
+

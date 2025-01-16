@@ -1,0 +1,82 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+@import "font-awesome/css/font-awesome.min.css";
+
+:root {
+  --success-color: #27ae60;
+  --info-color: #3498db;
+  --warning-color: #f39c12;
+  --danger-color: #e74c3c;
+  --dark-bg: #2c3e50;
+  --light-text: #ecf0f1;
+  --frame-bg: #484c54;
+  --content-bg: #151413;
+  --link-color: #4caf50;
+  --link-hover-color: #45a049;
+  --border-color: #444;
+  --terminal-bg: #000;
+}
+
+[class^="icon-"] {
+  width: 2rem;
+  height: auto;
+  color: white;
+}
+
+html,
+body {
+  background-color: #1d1e21;
+  color: var(--light-text);
+  font-family: FontAwesome, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%; /* Ensures the body fills the full viewport height */
+  overflow-y: auto; /* Allows scrolling only when content exceeds the viewport */
+  overflow-x: hidden;
+}
+
+.navbar {
+  background-color: #484c54;
+  color: var(--light-text);
+  display: flex;
+  align-items: center;
+  padding: 0;
+
+  a {
+    color: var(--link-color);
+    text-decoration: none;
+    margin: 0 1rem;
+  }
+
+  a:hover {
+    color: var(--link-hover-color);
+  }
+
+  button {
+    color: var(--link-color);
+    text-decoration: none;
+    margin: 0 1rem;
+  }
+
+  .navinner {
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+      .navbar-nav {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+  }
+}
+
+main {
+  margin-top: 3rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
