@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/', include('backend.api.urls'), name='api'),
     path('', include('backend.core.urls'), name='core'),
 
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
 
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += debug_toolbar_urls()
