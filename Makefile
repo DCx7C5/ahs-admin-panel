@@ -177,7 +177,7 @@ docker-compose-stop:  # stop the service
 
 docker-compose-down:  # stops service and removes container
 	@echo 'Stopping AHS docker compose service and removing containers'
-	docker compose -f "$(PROJECT_DIR)/docker-compose-dev.yaml" -p "ahs-admin-panel" stop
+	docker compose -f "$(PROJECT_DIR)/docker-compose-dev.yaml" -p "ahs-admin-panel" down
 
 create-super-user:  # creates new superuser account for project
 	@echo 'Creating ahs-admin-panel superuser/root account'
