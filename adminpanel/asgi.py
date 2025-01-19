@@ -22,8 +22,8 @@ application = ProtocolTypeRouter({
         AuthMiddlewareStack(
             URLRouter([
                 re_path(r"^ws/(?P<room_name>[a-zA-Z]+)/(?P<pty>pty[0-9]{1,5})/$",
-                        AsyncWebsocketTerminal.as_asgi()),
-                re_path(r"^ws/dashboard/$", AHSAsyncWebSocketConsumer.as_asgi())
+                        AsyncWebsocketTerminal.as_asgi(), name="terminal"),
+                re_path(r"^ws/dashboard/$", AHSAsyncWebSocketConsumer.as_asgi(),name="dashboard"),
             ])
         )
     ),
