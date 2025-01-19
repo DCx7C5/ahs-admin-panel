@@ -34,7 +34,7 @@ DOCKER_IMGS := $(shell docker images --filter "reference=ahs*" --format "{{.ID}}
 DOCKER_CONTS := $(shell docker ps -a --filter "name=^ahs" --format "{{.ID}}")
 # FIX_BOOKMARKS := $(shell find $(PROJECT_DIR) -type f -name "bookmarks.json")
 FIX_MENUITEMS := $(shell find $(PROJECT_DIR) -type f -name "menuitems.json")
-
+FIX_PAGES := $(shell find $(PROJECT_DIR) -type f -name "pages.json")
 DOCKER_NODE_CONT := $(shell  docker ps -a | grep "node" | cut -d' ' -f1 )
 
 MODULES := accounts bookmarks core xapi
@@ -70,6 +70,7 @@ delete-venv:  # delete whole .venv directory
 load-fixtures:  # loads on init necessary objects to db
 	@echo 'Loading necessary database fixtures'
 	$(PYTHON) manage.py loaddata "$(FIX_MENUITEMS)";
+	$(PYTHON) manage.py loaddata "$(FIX_PAGES)";
 	# $(PYTHON) manage.py loaddata "$(FIX_BOOKMARKS)";
 	@echo 'Done loading fixtures'
 
