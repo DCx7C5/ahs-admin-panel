@@ -32,10 +32,10 @@ WEBPACK_STATS := $(shell find $(PROJECT_DIR) -type f -name 'webpack-stats.json')
 DOCKER_VOLS := $(shell docker volume ls --filter "name=^ahs" --format "{{.Name}}")
 DOCKER_IMGS := $(shell docker images --filter "reference=ahs*" --format "{{.ID}}")
 DOCKER_CONTS := $(shell docker ps -a --filter "name=^ahs" --format "{{.ID}}")
-# FIX_BOOKMARKS := $(shell find $(PROJECT_DIR) -type f -name "bookmarks.json")
-FIX_MENUITEMS := $(shell find $(PROJECT_DIR) -type f -name "menuitems.json")
-FIX_PAGES := $(shell find $(PROJECT_DIR) -type f -name "pages.json")
+FIX_BOOKMARKS := $(shell find $(PROJECT_DIR) -type f -name "bookmarks.json")
+FIXTURES := $(shell find $(PROJECT_DIR) -type f -name "fixtures.json")
 DOCKER_NODE_CONT := $(shell  docker ps -a | grep "node" | cut -d' ' -f1 )
+DOCKER_DB_VOL := $(shell docker volume ls | grep post | awk -F" " '{print $2}' )
 
 MODULES := accounts bookmarks core xapi
 
@@ -69,9 +69,8 @@ delete-venv:  # delete whole .venv directory
 
 load-fixtures:  # loads on init necessary objects to db
 	@echo 'Loading necessary database fixtures'
-	$(PYTHON) manage.py loaddata "$(FIX_MENUITEMS)";
-	$(PYTHON) manage.py loaddata "$(FIX_PAGES)";
-	# $(PYTHON) manage.py loaddata "$(FIX_BOOKMARKS)";
+	$(PYTHON) manage.py loaddata "$(FIXTURES)";
+	$(PYTHON) manage.py loaddata "$(FIX_BOOKMARKS)";
 	@echo 'Done loading fixtures'
 
 set_permissions:  # Set permissions for the directories and socket files
@@ -130,10 +129,21 @@ reset-migrations:  # Reset migrations by completely removing all migrations fold
 	@echo 'Migration folder reset complete.'
 	@echo 'Things'
 
+_clean-db-action:
+	@echo 'Deleting complete Postgresql Database'
+	docker volume rm "$(DOCKER_DB_VOL)"
+	@echo 'Postgresql database deleted'
+
+
+
+clean-db: docker-compose-down _clean-db-action docker-compose-start makemigrations migrate
+
+
 clean-node:  # deletes npm and node container files
 	@echo 'Deleting all docker modules and webpack-stats.json'
 	rm -rf $(NODE_MOD_DIR) && rm -f $(WEBPACK_STATS)
 	@echo 'File and directory successfully deleted'
+
 
 clean-docker-volumes:  # delete docker project volumes (DB gets rebuild on django start)
 	@echo 'Deleting all docker volumes'

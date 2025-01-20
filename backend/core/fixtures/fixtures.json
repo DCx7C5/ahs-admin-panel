@@ -1,5 +1,23 @@
 [
   {
+    "model": "core.page",
+    "pk": 1,
+    "fields": {
+      "name": "dashboard",
+      "web_socket": true
+    }
+  },
+  {
+    "model": "core.systemhost",
+    "pk": 1,
+    "fields": {
+      "address": "127.0.0.1",
+      "hostname": "localhost",
+      "created_at": "2025-01-20T07:43:27.937472+00:00",
+      "updated_at": "2025-01-20T07:43:27.937472+00:00"
+    }
+  },
+  {
     "model": "core.menuitem",
     "pk": 1,
     "fields": {
