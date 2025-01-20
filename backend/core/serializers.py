@@ -1,11 +1,10 @@
 from adrf.serializers import ModelSerializer
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from backend.core.models import MenuItem
+from backend.core.models import MenuItem, SessionSocketURL
 from backend.core.models.host import Host
 
 AHSUser = get_user_model()
-
 
 
 class MenuItemSerializer(ModelSerializer):
@@ -48,10 +47,6 @@ class MenuItemSerializer(ModelSerializer):
 
 
 class HostSerializer(ModelSerializer):
-    id = serializers.IntegerField(read_only=True)
-    address = serializers.CharField(read_only=True)
-    name = serializers.CharField(read_only=True)
-
     class Meta:
         model = Host
         fields = '__all__'
@@ -65,3 +60,8 @@ class AHSUserSerializer(ModelSerializer):
             'email', 'is_active', 'is_staff', 'is_superuser',
             'last_login', 'image', 'uid',
         ]
+
+class SessionSocketUrlSerializer(ModelSerializer):
+    class Meta:
+        model = SessionSocketURL
+        fields = ('path',)
