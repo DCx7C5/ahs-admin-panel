@@ -13,14 +13,13 @@ from django.db.models import (
 )
 from django.utils.translation import gettext as _
 
-from backend.core.models.abc import AbstractUserProfile, AbstractPost
 from backend.core.models.mixins import (
     UpdateDateMixin,
 )
 
 
 
-class UserProfile(AbstractUserProfile, UpdateDateMixin):
+class UserProfile(Model, UpdateDateMixin):
 
     id = PositiveIntegerField(
         primary_key=True,
@@ -101,7 +100,7 @@ class UserProfile(AbstractUserProfile, UpdateDateMixin):
         app_label = 'xapi'
         verbose_name = 'X User Profile'
         verbose_name_plural = 'X User Profiles'
-        unique_together = (('id', 'user_name'),)
+        unique_together = (('id', 'username'),)
         ordering = (
             'id',
             'username',
@@ -122,7 +121,7 @@ class UserProfile(AbstractUserProfile, UpdateDateMixin):
         )
 
 
-class Post(AbstractPost, UpdateDateMixin):
+class Post(Model, UpdateDateMixin):
 
     id = PositiveBigIntegerField(primary_key=True)
 
