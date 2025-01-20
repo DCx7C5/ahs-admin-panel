@@ -19,6 +19,7 @@ COPY --chown=999:1000 ./docker/redis/redis.conf /etc/redis.conf
 COPY --chmod=740 --chown=999:1000 ./docker/redis/entrypoint.sh /entrypoint.sh
 
 RUN mkdir -p /tmp/redis && chown -R 999:1000 /tmp/redis
+RUN mkdir -p /var/lib/redis && chown -R 999:999 /var/lib/redis
 
 USER 999:1000
 ENTRYPOINT ["/entrypoint.sh"]
