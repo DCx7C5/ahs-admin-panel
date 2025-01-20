@@ -1,19 +1,17 @@
 import logging
 
 from django.contrib.auth import get_user_model
-from django.db.models import ForeignKey, CASCADE, BooleanField
+from django.db.models import ForeignKey, CASCADE, BooleanField, Model
 
-from backend.core.models.abc import AbstractEntity
-
-
-User = get_user_model()
 logger = logging.getLogger(__name__)
 
+AHSUser = get_user_model()
 
-class Workspace(AbstractEntity):
+
+class Workspace(Model):
 
     owner = ForeignKey(
-        User,
+        AHSUser,
         on_delete=CASCADE,
         related_name='workspaces',
         related_query_name='workspace',
