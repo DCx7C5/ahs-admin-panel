@@ -22,7 +22,7 @@
     "pk": 1,
     "fields": {
       "name": "Dashboard",
-      "path": "/",
+      "path": "",
       "icon": "bi bi-speedometer2",
       "order": 1,
       "active": true,
@@ -30,12 +30,25 @@
       "parent": null
     }
   },
-    {
+  {
     "model": "core.menuitem",
     "pk": 2,
     "fields": {
+      "name": "Dashboard",
+      "path": "dashboard/",
+      "icon": "bi bi-speedometer2",
+      "order": 2,
+      "active": true,
+      "app_label": "core",
+      "parent": 1
+    }
+  },
+    {
+    "model": "core.menuitem",
+    "pk": 3,
+    "fields": {
       "name": "Settings",
-      "path": "/settings/",
+      "path": "settings/",
       "icon": "bi bi-gear",
       "order": 90,
       "active": true,
@@ -45,12 +58,12 @@
   },
       {
     "model": "core.menuitem",
-    "pk": 3,
+    "pk": 4,
     "fields": {
       "name": "X Api",
-      "path": "/xapi/",
+      "path": "xapi/",
       "icon": "bi bi-twitter-x",
-      "order": 2,
+      "order": 89,
       "active": true,
       "app_label": "xtwitter",
       "parent": 1
