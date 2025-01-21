@@ -5,10 +5,18 @@ import uuid
 
 
 class Page(Model):
+    """
+    Represents a web page with metadata and active state.
+
+    This model is used to store information about web pages, including their name,
+    UUID, slug, and other properties. It can be used in various contexts where
+    web page information and configurations need to be managed or displayed.
+    """
     name = CharField(max_length=255, unique=True)
     uuid = UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
     slug = SlugField(max_length=255, unique=True, blank=True, null=True)
     web_socket = BooleanField(default=False)
+    is_active = BooleanField(default=True)
 
     class Meta:
         app_label = 'core'

@@ -9,6 +9,29 @@ logger = logging.getLogger(__name__)
 
 
 class TaskStatus:
+    """
+    Represents the various lifecycle states of a Task.
+
+    Available task statuses:
+    - **Pending:** Task is awaiting execution (:filter:`pending`).
+    - **Running:** Task is currently in progress (:filter:`running`).
+    - **Success:** Task executed successfully.
+    - **Failure:** Task execution failed.
+    - **Scheduled:** Task is scheduled for execution at a later time.
+
+    **Usage:**
+    Use `TaskStatus` to validate or classify task statuses.
+
+    Example:
+        .. code:: python
+
+            if TaskStatus.is_success(TaskStatus.success()):
+                # Do something if the task is successful
+
+    Links:
+    - Status validation: :model:`core.TaskStatus.is_valid`
+    - Pending state check: :model:`core.TaskStatus.is_pending`
+    """
     PENDING = 'pending'
     RUNNING = 'running'
     SUCCESS = 'success'
@@ -61,6 +84,9 @@ class TaskStatus:
 
 
 class Task(Model):
+    """
+
+    """
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     host = ForeignKey(
