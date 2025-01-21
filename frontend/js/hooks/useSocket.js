@@ -11,7 +11,13 @@ const ReadyState = {
 }
 
 
-export const useWebSocket =(endPoint, options = {}) => {
+export const useWebSocket = (initialEndPoint, options = {}) => {
+  return useSocket(initialEndPoint, options);
+}
+
+
+
+export const useSocket = (initialEndPoint, options = {}) => {
   const {
     reconnectLimit = 3,
     reconnectInterval = 3 * 1000,
@@ -24,11 +30,7 @@ export const useWebSocket =(endPoint, options = {}) => {
     protocols,
   } = options;
 
-  const onOpenRef = useRef(onOpen);
-  const onCloseRef = useRef(onClose);
-  const onMessageRef = useRef(onMessage);
-  const onErrorRef = useRef(onError);
-
+  const endPointRef = useRef(initialEndPoint);
   const reconnectTimesRef = useRef(0);
   const reconnectTimerRef = useRef(null);
   const websocketRef = useRef(null);
@@ -37,14 +39,11 @@ export const useWebSocket =(endPoint, options = {}) => {
   const [readyState, setReadyState] = useState(ReadyState.Closed);
   const commandsRef = useRef({});
 
-
-  // Track the mounted state of the component
   const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;
-
-    if (!manual && endPoint) {
+    if (!manual && endPointRef.current) {
       connect();
     }
 
@@ -55,17 +54,15 @@ export const useWebSocket =(endPoint, options = {}) => {
       }
       disconnect();
     };
-  },[])
+  }, []);
 
   const reconnect = () => {
     if (websocketRef.current && websocketRef.current.readyState === ReadyState.Open) {
-      return; // If the current WebSocket is already open, no need to reconnect
+      return;
     }
 
     if (reconnectTimesRef.current < reconnectLimit) {
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current); // Clear any previous timers
-      }
+      clearTimeout(reconnectTimerRef.current);
 
       reconnectTimerRef.current = setTimeout(() => {
         connectWs();
@@ -77,29 +74,29 @@ export const useWebSocket =(endPoint, options = {}) => {
   };
 
   const connectWs = () => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-    }
+    clearTimeout(reconnectTimerRef.current);
 
     if (websocketRef.current) {
       websocketRef.current.close();
     }
-    const proto = document.location.protocol === "https:" ? "wss" : "ws";
-    const socketUrl = `${proto}://${window.location.host}/ws/${endPoint}`
+
+    const proto = document.location.protocol === 'https:' ? 'wss' : 'ws';
+    const socketUrl = `${proto}://${window.location.host}/ws/${endPointRef.current}/`;
     const ws = new WebSocket(socketUrl, protocols);
     setReadyState(ReadyState.Connecting);
 
     ws.onerror = (event) => {
       const error = event.error || event.message;
 
-      // Example adjustment: Stop reconnecting if the error is related to authentication
-      if (error && error.includes("Unauthorized")) {
-        reconnectTimesRef.current = reconnectLimit; // Stop reconnects
+      if (error && error.includes('Unauthorized')) {
+        reconnectTimesRef.current = reconnectLimit;
       } else {
-        reconnect(); // Retry for all other errors
+        reconnect();
       }
 
-      onErrorRef.current?.(event, ws);
+      if (onError) {
+        onError(event, ws);
+      }
 
       if (isMounted.current) setReadyState(ws.readyState || ReadyState.Closed);
     };
@@ -108,42 +105,43 @@ export const useWebSocket =(endPoint, options = {}) => {
       if (websocketRef.current !== ws) {
         return;
       }
-      onOpenRef.current?.(event, ws);
+
+      if (onOpen) {
+        onOpen(event, ws);
+      }
       reconnectTimesRef.current = 0;
 
-      // Prevent state updates if the component is unmounted
       if (isMounted.current) {
-        setReadyState(ws.readyState || ReadyState.Open)
+        setReadyState(ws.readyState || ReadyState.Open);
       }
     };
 
     ws.onmessage = (message) => {
       if (websocketRef.current !== ws) return;
-      const d = JSON.parse(message.data);
-      console.log('onMessage', d)
-      if (mode === 'dashboard') {
-        if (d.uniqueId) {
-          const { handler, args } = commandsRef.current[d.app][d.cmd][d.uniqueId];
-          handler(d.data, ...args);
-        } else {
-          const { handler } = commandsRef.current[d.app][d.cmd];
-          handler(d.data);
-        }
+      const data = JSON.parse(message.data);
+      console.log('onMessage', data);
+
+      if (mode === 'channel') {
+        const { handler, args } = commandsRef.current[data.app][data.cmd][data.unique_id];
+        handler(data.data, ...args);
       } else {
-        onMessageRef.current?.(message, ws);
+        if (onMessage) {
+          onMessage(message, ws);
+        }
         if (isMounted.current) {
-          setLatestMessage(d);
+          setLatestMessage(data);
         }
       }
     };
 
     ws.onclose = (event) => {
-      onCloseRef.current?.(event, ws);
+      if (onClose) {
+        onClose(event, ws);
+      }
       if (websocketRef.current === ws) {
         reconnect();
       }
       if (!websocketRef.current || websocketRef.current === ws) {
-        // Prevent state updates if the component is unmounted
         if (isMounted.current) setReadyState(ws.readyState || ReadyState.Closed);
       }
     };
@@ -151,14 +149,17 @@ export const useWebSocket =(endPoint, options = {}) => {
     websocketRef.current = ws;
   };
 
-  const readyStateString =
-    readyState === ReadyState.Connecting
-      ? "Connecting"
-      : readyState === ReadyState.Open
-      ? "Open"
-      : readyState === ReadyState.Closing
-      ? "Closing"
-      : "Closed";
+  const connect = useCallback(() => {
+    reconnectTimesRef.current = 0;
+    connectWs();
+  }, []);
+
+  const disconnect = useCallback(() => {
+    clearTimeout(reconnectTimerRef.current);
+    reconnectTimesRef.current = reconnectLimit;
+    websocketRef.current?.close();
+    websocketRef.current = undefined;
+  }, [reconnectLimit]);
 
   const sendMessage = useCallback((message) => {
     if (readyState !== ReadyState.Open) {
@@ -166,27 +167,23 @@ export const useWebSocket =(endPoint, options = {}) => {
       return;
     }
     websocketRef.current?.send(message);
-  },[]);
+  }, [readyState]);
 
-  const connect = useCallback(() => {
-    reconnectTimesRef.current = 0;
-    connectWs();
-  }, []);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
+  const changeEndpoint = useCallback((newEndPoint) => {
+    console.log(`Changing WebSocket endpoint to: ${newEndPoint}`);
+    if (readyState !== ReadyState.Closed) {
+      disconnect();
     }
-    reconnectTimesRef.current = reconnectLimit;
-    websocketRef.current?.close();
-    websocketRef.current = undefined;
-  }, []);
+    endPointRef.current = newEndPoint;
+    connect();
+  }, [disconnect, connect, readyState]);
 
-  const registerMsgCallback = useCallback((app, command, handler, kwargs, uniqueId = undefined) => {
-    if (!command || typeof handler !== "function") {
-      console.error("Invalid command or handler");
+  const registerMsgCallback = useCallback((app, command, handler, args = [], kwargs = {}, uniqueId = 0) => {
+    if (!command || typeof handler !== 'function') {
+      console.error('Invalid command or handler');
       return;
     }
+
     if (!commandsRef.current[app]) {
       commandsRef.current[app] = {};
     }
@@ -195,21 +192,24 @@ export const useWebSocket =(endPoint, options = {}) => {
       commandsRef.current[app][command] = {};
     }
 
-    // Save the handler and its arguments by command
-    if (uniqueId) {
-      commandsRef.current[app][command][uniqueId] = { handler, kwargs };
-    }
-    commandsRef.current[app][command] = { handler };
-    console.log('Successful registered', commandsRef.current)
-  }, [commandsRef]);
+    commandsRef.current[app][command][uniqueId] = { handler, args, kwargs };
+    console.log('Successful registered', commandsRef.current);
+  }, []);
 
   return {
-    latestMessage,
     sendMessage,
     connect,
     disconnect,
+    changeEndpoint,
     readyState,
-    readyStateString,
+    readyStateString:
+      readyState === ReadyState.Connecting
+        ? 'Connecting'
+        : readyState === ReadyState.Open
+        ? 'Open'
+        : readyState === ReadyState.Closing
+        ? 'Closing'
+        : 'Closed',
     webSocketIns: websocketRef.current,
     registerMsgCallback,
   };
@@ -231,7 +231,7 @@ options.PropTypes = {
 };
 */
 
-useWebSocket.PropTypes = {
+useSocket.PropTypes = {
   latestMessage: PropTypes.any, // Optional, as WebSocketEventMap['message'] isn't directly representable, use any.
   sendMessage: PropTypes.func.isRequired, // This corresponds to WebSocket's `send` method.
   disconnect: PropTypes.func.isRequired, // A required function.
@@ -240,4 +240,4 @@ useWebSocket.PropTypes = {
   webSocketIns: PropTypes.instanceOf(WebSocket), // Optional WebSocket instance.
 };
 
-export default useWebSocket;
+export default useSocket;
