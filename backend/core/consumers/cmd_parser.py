@@ -1,20 +1,18 @@
-from dataclasses import dataclass
 import inspect
 import json
 import logging
-from uuid import UUID
 from functools import wraps
 from typing import (
-    List,
     Dict,
     Callable,
     Coroutine,
-    AsyncGenerator,
+    AsyncGenerator, Set, List,
 )
 
 from django.contrib.auth import get_user_model
 
 from config import settings
+from backend.core.utils import parse_func_signature
 
 logging.getLogger('daphne.ws_protocol').setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,41 +20,23 @@ logger = logging.getLogger(__name__)
 AHSUser = get_user_model()
 
 
-CommandDictionary = {
-    app: {
+class CmdMapper:
+    apps: Set[str] = {app.split(".")[1] for app in settings.INSTALLED_APPS if app.startswith('backend')}
 
-    } for app in settings.INSTALLED_APPS
-}
+    def __init__(self):
+        self.callbacks: Dict[str, str | List | Dict | None] = {}
 
+    def register_callback(self, app: str, func_name: str, func: Callable[..., Coroutine] | AsyncGenerator):
+        if app not in self.apps:
+            raise ValueError(f"App '{app}' not found in registered apps.")
+        if func_name not in self.callbacks.keys():
+            self.callbacks[func_name] = {'args': [],'kwargs': {},'annotations': {},'func': None}
+        (self.callbacks[func_name]['args'],
+             self.callbacks[func_name]['kwargs'],
+             self.callbacks[func_name]['annotations']) = (parse_func_signature(func, ['user']))
+        self.callbacks[func_name]['func'] = func
+        logger.debug(f"Registered callback '{func_name}' for app '{app}' with function {func}")
 
-
-@dataclass
-class Command:
-    """Dataclass representing a command/message."""
-
-    __slots__ = ('app', 'func_name', 'func_args', 'func_kwargs',
-                 'owner', 'send_resp_coro', 'unique_call_id', 'cb')
-
-    app: str
-    func_name: str
-    func_args: List[any]
-    func_kwargs: List[Dict[str, any]]
-    owner: int | str | AHSUser
-    send_resp_coro: Callable[..., Coroutine]
-    unique_call_id: str | UUID | int
-    cb: Callable[..., Coroutine] | AsyncGenerator | None
-
-    def __post_init__(self):
-        if not self.cb:
-            ...
-
-    @staticmethod
-    def validate_params(params: List[str], required_params: List[str]) -> bool:
-        """Validates if the required parameters are included in the inputs."""
-        missing_params = [p for p in required_params if p not in params]
-        if missing_params:
-            raise ValueError(f"Missing required parameters: {', '.join(missing_params)}")
-        return True
 
 
 
@@ -66,14 +46,6 @@ class CmdHandler:
 
     def __init__(self):
         self.commands: Dict[str, Dict[str, Dict[str,Callable[..., Coroutine]]]] = {}
-
-    def register_function(self, app: str, cmd: str, func: Callable[..., Coroutine]):
-        """Register a function for an app and command name."""
-        if app not in self.commands:
-            self.commands[app] = {}
-        kwargs = dict(inspect.signature(func).parameters)
-        self.commands[app][cmd] = {'func': func, 'kwargs': kwargs}
-        logger.debug(f"Registered command '{cmd}:{kwargs}' for app '{app}' with function {func}")
 
     async def __call__(self, data, user: AHSUser, send_coro: Callable[..., Coroutine]):
         """Handle a command by parsing and executing it."""
@@ -148,8 +120,7 @@ class CmdHandler:
             logger.exception(f"Error while executing command '{cmd}': {e}")
 
 
-CmdHandlerIns = CmdHandler()
-
+CommandMapper = CmdMapper()
 
 
 def websocket_cmd(func):
@@ -160,12 +131,9 @@ def websocket_cmd(func):
         return await func(*args, **kwargs)
 
     # Dynamically retrieve the app name and command name
-    module_path = func.__module__  # e.g., 'backend.bookmarks.commands'
-    app = module_path.split('.')[1] if module_path.startswith('backend') else module_path.split('.')[0]
+    app_name = func.__module__.split('.')[1]
     func_name = func.__name__  # Extract function name
 
-    # Register the function in CmdParser
-    CmdHandlerIns.register_function(app, func_name, func)
-
+    CommandMapper.register_callback(app_name, func_name, func)
+    logger.debug(f"Registered callback '{func_name}' for app '{app_name}' with function {func}")
     return wrapper
-

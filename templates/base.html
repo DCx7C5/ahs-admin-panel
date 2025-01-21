@@ -29,6 +29,7 @@
   {% block javascript_head %}{% endblock %}
   {{ AHS_SERIAL_USER|json_script:"user-data" }}
   {{ MENU_ITEMS|json_script:"menu-data" }}
+  {{ SOCKET_URL|json_script:"socket-url" }}
   {% block extra_head %}{% endblock extra_head %}
 
 </head>
