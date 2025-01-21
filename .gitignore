@@ -365,3 +365,4 @@ media/
 /docker/redis/redis.sock.lock
 */bookmarks.*
 # Project exclude paths
+staticfiles/
