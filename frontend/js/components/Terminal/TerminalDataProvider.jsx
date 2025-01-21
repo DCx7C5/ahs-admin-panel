@@ -1,6 +1,6 @@
 import React, {createContext, useRef} from 'react';
 import useHideElement from "../../hooks/useHideElement";
-import useWebSocket from "../../hooks/useWebsocket";
+import useSocket from "../../hooks/useSocket";
 import {useTerminalManager} from "../../hooks/useTerminalManager";
 
 export const TerminalContext = createContext(null);
@@ -19,7 +19,7 @@ export const TerminalProvider = ({ children }) => {
     webSocketIns,
     readyState,
     sendMessage,
-  } = useWebSocket(
+  } = useSocket(
     `terminal/pty0/`,
     {
       reconnectLimit: 10,

@@ -1,5 +1,5 @@
 import React, {use} from "react";
-import {DataContext} from "./DataProvider";
+import {DataContext} from "./AhsDataProvider";
 
 
 interface RestrictedContentProps {

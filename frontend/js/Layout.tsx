@@ -1,19 +1,21 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Base from "../pages/Base";
-import RestrictedContent from "./RestrictedContent";
-import Sidebar from "./Sidebar/Sidebar";
+import Base from "./pages/Base";
+import RestrictedContent from "./components/RestrictedContent";
+import Sidebar from "./components/Sidebar/Sidebar";
+import {PageWrapper} from "./components/Page";
 
 
 export const Layout = () => {
-
   return (
     <Base>
       <div className="content-wrapper">
         <Sidebar toggleClass='sbtoggle' />
         <main className="main-content" >
           <RestrictedContent>
-            <Outlet/>
+            <PageWrapper>
+              <Outlet />
+            </PageWrapper>
           </RestrictedContent>
         </main>
       </div>

@@ -1,6 +1,6 @@
 import React, {lazy, Suspense} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
-import Layout from "./components/Layout";
+import Layout from "./Layout";
 
 
 const DashBoard = lazy(() => import("./pages/dashboard/Dashboard")
@@ -31,6 +31,7 @@ export const Root = () => {
                 <Routes>
                     <Route path="/" element={<Layout />} >
                         <Route index element={<DashBoard />} />
+                        <Route path='dashboard' element={<DashBoard />} />
                         <Route path='xapi' element={<Test />} >
                             <Route path='settings' element={<Test />} />
                         </Route>

@@ -1,6 +1,7 @@
 import RestrictedContent from "../components/RestrictedContent";
 import React, {lazy, ReactNode, StrictMode, Suspense} from "react";
-import DataProvider from "../components/DataProvider";
+import AhsDataProvider from "../components/AhsDataProvider";
+import SocketProvider from "../components/SocketProvider";
 
 
 
@@ -14,18 +15,18 @@ const Terminal = lazy(() =>
 const Base = ({ children }: {children: ReactNode}) => {
 
   return (
-    <DataProvider userElementId={'user-data'}
-                  menuElementId={'menu-data'}
-    >
+    <AhsDataProvider>
       <StrictMode>
-        {children}
+        <SocketProvider>
+          {children}
+        </SocketProvider>
       </StrictMode>
       <RestrictedContent>
         <Suspense>
           <Terminal />
         </Suspense>
       </RestrictedContent>
-    </DataProvider>
+    </AhsDataProvider>
   );
 };
 

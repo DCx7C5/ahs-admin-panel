@@ -1,10 +1,13 @@
-import React, { createContext, useRef, ReactNode} from "react";
+import React, {createContext, useRef, ReactNode} from "react";
 
 
 interface DataContextType {
   user: Record<string, any>;
   menuItems: Record<string, any>;
+  socketUrl: string; // Notice this expects an object, not a string
 }
+
+
 
 export const DataContext = createContext<DataContextType | null>(null);
 
@@ -20,25 +23,21 @@ const parseDataFromElement = (dataElementId: string): Record<string, any> => {
 
 
 interface DataProviderProps {
-  userElementId: string;
-  menuElementId: string;
   children: ReactNode;
 }
 
-export const DataProvider: React.FC<DataProviderProps> = ({
-  userElementId,
-  menuElementId,
-  children,
-}) => {
+export const AhsDataProvider: React.FC<DataProviderProps> = ({children}) => {
 
-  const userRef = useRef({ user: parseDataFromElement(userElementId) });
-  const menuRef = useRef({ menuItems: parseDataFromElement(menuElementId) });
+  const userRef = useRef(parseDataFromElement('user-data'));
+  const menuRef = useRef(parseDataFromElement('menu-data'));
+  const socketRef = useRef(parseDataFromElement('socket-url'))
 
   return (
     <DataContext.Provider
       value={{
-        user: userRef.current.user,
-        menuItems: menuRef.current.menuItems,
+        user: userRef.current,
+        menuItems: menuRef.current,
+        socketUrl: atob(socketRef.current["path"])
       }}
     >
       {children}
@@ -47,4 +46,4 @@ export const DataProvider: React.FC<DataProviderProps> = ({
 };
 
 
-export default DataProvider;
+export default AhsDataProvider;
