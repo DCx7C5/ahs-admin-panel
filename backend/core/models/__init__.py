@@ -1,3 +1,4 @@
+from .chl_msglog import ChannelLayerMessageLog
 from .domain import Domain
 from .endpoint import AHSEndPoint
 from .host import Host
