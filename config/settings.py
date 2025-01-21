@@ -47,9 +47,9 @@ INSTALLED_APPS = [
 
     # Local mods
     'backend.core',
-    'backend.accounts',
-    'backend.bookmarks',
-    'backend.xapi',
+    'backend.core.accounts',
+    'backend.apps.bookmarks',
+    'backend.apps.xapi',
 ]
 
 

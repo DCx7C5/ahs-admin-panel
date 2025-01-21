@@ -1,7 +1,7 @@
 from adrf.serializers import ModelSerializer
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from backend.core.models import MenuItem, SessionSocketURL
+from backend.core.models import AHSEndPoint, SessionSocketURL
 from backend.core.models.host import Host
 
 AHSUser = get_user_model()
@@ -9,7 +9,7 @@ AHSUser = get_user_model()
 
 class MenuItemSerializer(ModelSerializer):
     class Meta:
-        model = MenuItem
+        model = AHSEndPoint
         fields = [
             "name",
             "path",

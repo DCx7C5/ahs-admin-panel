@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 
-from backend.bookmarks.models import Bookmark, BookmarksProfile
+from backend.apps.bookmarks.models import Bookmark, BookmarksProfile
 
 
 # Register your models here.

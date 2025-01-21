@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 
-from backend.xapi.models import UserProfile
+from backend.apps.xapi.models import UserProfile
 
 
 # Register your models here.

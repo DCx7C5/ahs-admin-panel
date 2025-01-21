@@ -9,7 +9,7 @@ urlpatterns = [
     path('admin/doc/', include('django.contrib.admindocs.urls')),
     path('admin/', admin.site.urls),
     path('admin/doc/', include('django.contrib.admindocs.urls')),
-    path('accounts/', include('backend.accounts.urls')),
+    path('accounts/', include('backend.core.accounts.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('backend.core.urls'), name='core'),
 

@@ -1,9 +1,9 @@
 import logging
 from uuid import UUID
 
-from backend.accounts.models import AHSUser
-from backend.bookmarks.models import Category, Bookmark
-from backend.bookmarks.serializer import CategorySerializer, BookmarkSerializer
+from backend.core.accounts import AHSUser
+from backend.apps.bookmarks.models import Category, Bookmark
+from backend.apps.bookmarks.serializer import CategorySerializer, BookmarkSerializer
 from backend.core.consumers.cmd_parser import websocket_cmd
 
 logger = logging.getLogger(__name__)

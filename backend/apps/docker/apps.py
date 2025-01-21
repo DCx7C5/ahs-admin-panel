@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class AillmConfig(AppConfig):
+class AhsDockerConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'backend.aillm'
+    name = 'backend.apps.docker'

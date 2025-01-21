@@ -11,7 +11,7 @@ from django.contrib.auth.views import (
 
 from django.urls import path
 
-from backend.accounts.views import SignUpView
+from backend.core.accounts.views import SignUpView
 
 urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),

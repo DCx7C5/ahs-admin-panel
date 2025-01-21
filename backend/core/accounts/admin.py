@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
-from backend.accounts.forms import CustomUserCreationForm, CustomUserChangeForm
+from backend.core.accounts.forms import CustomUserCreationForm, CustomUserChangeForm
 
 AHSUser = get_user_model()
 
