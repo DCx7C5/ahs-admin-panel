@@ -64,4 +64,4 @@ class AHSUserSerializer(ModelSerializer):
 class SessionSocketUrlSerializer(ModelSerializer):
     class Meta:
         model = SessionSocketURL
-        fields = ('path',)
+        fields = ('path', 'session_id')
