@@ -15,9 +15,7 @@ export const Bookmark = ({parentRef, id, name, url, icon_url}) => {
     <div ref={elementRef} className={"bookmark"}>
       <a href={url}>
         <img src={icon_url} alt={`icon_${name}`}/>
-      </a>
-      <a href={url}>
-        {name}
+        <span>{name}</span>
       </a>
     </div>
   )
