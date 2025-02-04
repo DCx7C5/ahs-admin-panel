@@ -101,8 +101,6 @@ class AHSSettings(models.Model):
         verbose_name_plural = _("AHS Settings")
         ordering = ["key"]
 
-        U
-
     def __str__(self):
         return f"{self.key}: {self.value}"
 
