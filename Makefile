@@ -136,7 +136,7 @@ _clean-db-action:
 
 
 
-clean-db: docker-compose-down _clean-db-action docker-compose-start makemigrations migrate
+clean-db: docker-compose-down _clean-db-action docker-compose-start
 
 
 clean-node:  # deletes npm and node container files

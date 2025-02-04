@@ -359,6 +359,7 @@ node_modules
 /frontend/webpack-stats.json
 .log/
 media/
+!media/pfps/default.jpg
 /docker/postgres/.s.PGSQL.5432.lock
 /docker/postgres/.s.PGSQL.5432
 /docker/redis/redis.sock

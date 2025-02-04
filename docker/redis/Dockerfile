@@ -3,9 +3,7 @@ ARG user=user
 ENV user=$user
 
 RUN apt update && \
-    apt -y install \
-      libssl-dev \
-      build-essential && \
+    apt -y install libssl-dev && \
     apt autoremove && \
     apt autoclean
 
