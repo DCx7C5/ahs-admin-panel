@@ -81,7 +81,6 @@ class Host(Model):
         help_text=_("The timestamp for the latest update to the host.")
     )
 
-
     class Meta:
         app_label = "core"
         verbose_name = "Host"
@@ -90,12 +89,7 @@ class Host(Model):
 
         #: Enforces constraints on different host types.
         constraints = [
-            # Systemhosts only one IP
-            CheckConstraint(
-                check=~Q(hosts__is_systemhost=True) | Q(hosts__count__lte=1),
-                name="single_ip_per_systemhost_constraint",
-            ),
-            # Only one localhost allowed
+            # Only one localhost is allowed
             UniqueConstraint(
                 fields=["is_localhost"],
                 condition=Q(is_localhost=True),
@@ -108,48 +102,38 @@ class Host(Model):
                 name="unique_hostname_localhost_constraint",
             ),
             # Regular hosts must have a workspace
-            UniqueConstraint(
-                fields=["workspace"],
-                condition=Q(is_localhost=False, is_systemhost=False),
+            CheckConstraint(
+                check=Q(is_localhost=False, is_systemhost=False, workspace__isnull=False),
                 name="regular_host_workspace_constraint",
             ),
             # System hosts must have no workspace
-            UniqueConstraint(
-                fields=["is_systemhost", "workspace"],
-                condition=Q(is_systemhost=True, workspace=None),
+            CheckConstraint(
+                check=Q(is_systemhost=True, workspace__isnull=True),
                 name="system_host_no_workspace_constraint",
             ),
-        ]
-        permissions = [
-
+            # Additional complex constraints for many-to-many relationships must be handled via validation logic.
         ]
 
     async def save(self, *args, **kwargs):
-        """
-        Save the host instance, enforcing constraints for localhost, system hosts, and regular hosts.
+        # Validate for system hosts
+        if self.is_systemhost:
+            # Ensure that system hosts have at most one associated IP address
+            if self.address.count() > 1:
+                raise ValueError("System hosts may only have one associated IP address.")
 
-        Raises:
-            ValueError: If localhost or system host uniqueness conditions are violated,
-                        or if regular hosts do not have a workspace.
-        """
         if self.is_localhost:
             # Ensure only one localhost exists
             if Host.objects.filter(is_localhost=True).exclude(pk=self.pk).exists():
                 raise ValueError("Only one localhost instance is allowed.")
-            # Ensure localhost has no workspace
-            if self.workspace is not None:
+            if self.workspace:
                 raise ValueError("Localhost must not be associated with a workspace.")
 
-        if self.is_systemhost:
-            # Ensure system host has no workspace
-            if self.workspace is not None:
-                raise ValueError("System hosts must not be associated with a workspace.")
+        if not self.is_localhost and not self.is_systemhost:
+            # Ensure regular hosts have a workspace
+            if not self.workspace:
+                raise ValueError("Regular hosts must be associated with a workspace.")
 
-        elif not self.workspace:
-            # Regular hosts must have a workspace
-            raise ValueError("Regular hosts must be associated with a workspace.")
-
-        # Only save if validations pass
+        # Call the original save method to persist the data
         super().save(*args, **kwargs)
 
     def __str__(self):

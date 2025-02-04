@@ -82,6 +82,7 @@ class SocketConnection(Model):
     lhost = ForeignKey(
         Host,
         on_delete=CASCADE,
+        related_name="lhost_connections",
         db_index=True,
         help_text=_("The local host that establishes the connection."),
     )
@@ -111,6 +112,7 @@ class SocketConnection(Model):
     rhost = ForeignKey(
         Host,
         on_delete=CASCADE,
+        related_name="rhost_connections",
         db_index=True,
         help_text=_("The remote host that the local host communicates with."),
     )
@@ -136,6 +138,7 @@ class SocketConnection(Model):
 
         constraints = [
             UniqueConstraint(fields=['lhost', 'lport'], name='unique_lhost_lport'),
+            UniqueConstraint(fields=['rhost', 'rport'], name='unique_rhost_rport'),
             CheckConstraint(
                 check=Q(lport__gte=0, lport__lte=65535),
                 name="check_valid_lport_range",

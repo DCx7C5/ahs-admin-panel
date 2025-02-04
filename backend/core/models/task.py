@@ -23,7 +23,7 @@ class TaskStatus:
     Use `TaskStatus` to validate or classify task statuses.
 
     Example:
-        .. code:: python
+        ... code:: python
 
             if TaskStatus.is_success(TaskStatus.success()):
                 # Do something if the task is successful
@@ -116,6 +116,5 @@ class Task(Model):
         ordering = ['-created_at']
 
     def clean(self):
-        # Ensure status is valid
         if not TaskStatus.is_valid(self.status):
             raise ValidationError({'status': _('Invalid status value.')})

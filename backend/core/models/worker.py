@@ -5,6 +5,8 @@ from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
+from backend.core.models import Host
+
 
 class ActiveWorkerException(Exception):
     """Custom exception for Worker management errors."""
@@ -98,7 +100,7 @@ class Worker(Model):
         default="active",
     )
     host = ForeignKey(
-        to='core.SystemHost',
+        to=Host,
         on_delete=models.CASCADE,
         related_name='workers',
         null=True,
