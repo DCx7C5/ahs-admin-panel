@@ -5,6 +5,9 @@ from django.db.models import Model, ForeignKey
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
+from backend.apps.network.models.hosts import Host
+from backend.ahs_workers.models import Worker
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,8 +32,8 @@ class TaskStatus:
                 # Do something if the task is successful
 
     Links:
-    - Status validation: :model:`core.TaskStatus.is_valid`
-    - Pending state check: :model:`core.TaskStatus.is_pending`
+    - Status validation: :model:`ahs_core.TaskStatus.is_valid`
+    - Pending state check: :model:`ahs_core.TaskStatus.is_pending`
     """
     PENDING = 'pending'
     RUNNING = 'running'
@@ -90,7 +93,7 @@ class Task(Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     host = ForeignKey(
-        to='core.Host',
+        to=Host,
         on_delete=models.CASCADE,
     )
     status = models.CharField(
@@ -100,7 +103,7 @@ class Task(Model):
     )
 
     worker = ForeignKey(
-        to='core.Worker',
+        to=Worker,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -110,7 +113,7 @@ class Task(Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = 'core'
+        app_label = 'ahs_core'
         verbose_name = 'Task'
         verbose_name_plural = 'Tasks'
         ordering = ['-created_at']
