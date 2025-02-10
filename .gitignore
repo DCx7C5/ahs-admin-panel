@@ -140,11 +140,11 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
+# Spyder project ahs_settings
 .spyderproject
 .spyproject
 
-# Rope project settings
+# Rope project ahs_settings
 .ropeproject
 
 # mkdocs documentation
@@ -251,7 +251,7 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 ### PyCharm+all Patch ###
-# Ignore everything but code style settings and run configurations
+# Ignore everything but code style ahs_settings and run configurations
 # that are supposed to be shared within teams.
 
 .idea/*
@@ -321,9 +321,9 @@ fabric.properties
 
 # Environments
 
-# Spyder project settings
+# Spyder project ahs_settings
 
-# Rope project settings
+# Rope project ahs_settings
 
 # mkdocs documentation
 
@@ -367,3 +367,10 @@ media/
 */bookmarks.*
 # Project exclude paths
 staticfiles/
+.gnupg/
+**/private_key.*
+**/private*.*
+**/public_key.*
+**/public*.*
+**/bookmarks.json
+bookmarks.json
