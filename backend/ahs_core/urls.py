@@ -1,11 +1,11 @@
 from django.urls import path, include
-from backend.core.views import UserProfileView, async_dashboard_view, ReactView
+from backend.ahs_core.views import UserProfileView, async_dashboard_view, ReactView
 
-app_name = 'core'
+app_name = 'ahs_core'
 
 
 urlpatterns = [
-    path('settings/', async_dashboard_view, name='settings'),
+    path('ahs_settings/', async_dashboard_view, name='ahs_settings'),
     path('profile/<str:username>/', UserProfileView.as_view(), name='profile'),
     path('xapi/', include('backend.apps.xapi.urls'), name='xapi'),
     path('', async_dashboard_view, name='dashboard'),

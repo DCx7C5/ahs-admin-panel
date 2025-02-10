@@ -120,9 +120,9 @@ class Command(DjangoRunserverCommand):
         )
         parser.add_argument(
             "-w",
-            "--workers",
-            dest="workers",
-            help="The number of workers to spawn and use",
+            "--ahs_workers",
+            dest="ahs_workers",
+            help="The number of ahs_workers to spawn and use",
             type=int,
         )
         setattr(parser, 'use_threading', True)
@@ -198,7 +198,7 @@ class Command(DjangoRunserverCommand):
     def overwrite_env_vars(self):
         """Overwrite env vars for socket access over docker mounts"""
         os.environ['DB_HOST'] = self._docker['postgres']['socket']
-        os.environ['REDIS_HOST'] = 'unix://' + self._docker['redis']['socket'] + '/redis.sock'
+        os.environ['REDIS_HOST'] = 'system://' + self._docker['redis']['socket'] + '/redis.sock'
 
     def save_new_socket_addresses_in_env_file(self):
         ow = input('Do you want to overwrite the sockets in your env file? (Y/n):')
@@ -209,7 +209,7 @@ class Command(DjangoRunserverCommand):
                 if line.startswith('DB_HOST'):
                     lines[lines.index(line)] = f"DB_HOST={self._docker['postgres']['socket']}\n"
                 elif line.startswith('REDIS_HOST'):
-                    lines[lines.index(line)] = f"REDIS_HOST=unix://{self._docker['redis']['socket']}/redis.sock\n"
+                    lines[lines.index(line)] = f"REDIS_HOST=system://{self._docker['redis']['socket']}/redis.sock\n"
             with open('.env', 'w') as f:
                 f.writelines(lines)
 
@@ -266,7 +266,7 @@ class Command(DjangoRunserverCommand):
         self.stdout.write(now)
         self.stdout.write(
             (
-                "Django version %(version)s, using settings %(settings)r\n"
+                "Django version %(version)s, using ahs_settings %(ahs_settings)r\n"
                 "Starting ASGI/Daphne version %(daphne_version)s development server"
                 " at %(protocol)s://%(addr)s:%(port)s/\n"
                 "Quit the server with %(quit_command)s.\n"
@@ -274,7 +274,7 @@ class Command(DjangoRunserverCommand):
             % {
                 "version": self.get_version(),
                 "server": __version__,
-                "settings": settings.SETTINGS_MODULE,
+                "ahs_settings": settings.SETTINGS_MODULE,
                 "protocol": self.protocol,
                 "addr": "[%s]" % self.addr if self._raw_ipv6 else self.addr,
                 "port": self.port,
@@ -286,7 +286,7 @@ class Command(DjangoRunserverCommand):
         # actually a subthread under the autoreloader.
         logger.debug("Daphne running, listening on %s:%s", self.addr, self.port)
 
-        # build the endpoint description string from host/port options
+        # build the ahs_endpoints description string from host/port options
         endpoints = build_endpoint_description_strings(host=self.addr, port=self.port)
         try:
             self.server_cls(

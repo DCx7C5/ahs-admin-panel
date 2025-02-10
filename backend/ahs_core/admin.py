@@ -4,7 +4,14 @@ from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import Group, Permission
 from django.contrib.sessions.models import Session
 
-from backend.core.models.host import Host
+from backend.ahs_core.models.apps import App
+
+
+@admin.register(App)
+class AppModelAdmin(ModelAdmin):
+    list_display = ("id", "name", "content_type",)
+    search_fields = ("name",)
+    ordering = ("name",)
 
 
 @admin.register(Session)
@@ -17,13 +24,6 @@ class AdminLogAdmin(ModelAdmin):
     list_display = ('action_time', 'user', 'content_type', 'change_message', 'is_addition', 'is_change', 'is_deletion')
     list_filter = ['action_time', 'user', 'content_type']
     ordering = ('-action_time',)
-
-
-
-@admin.register(Host)
-class HostAdmin(ModelAdmin):
-    ordering = ('id',)
-    search_fields = ('name', 'address',)
 
 
 @admin.register(Permission)

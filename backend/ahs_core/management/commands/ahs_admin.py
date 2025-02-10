@@ -1,25 +1,18 @@
-import errno
 import logging
 import os
 import shutil
-import sys
-from datetime import datetime
 from typing import Tuple, Dict
 
-from daphne.endpoints import build_endpoint_description_strings
 from daphne.management.commands.runserver import get_default_application
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler
-from django.utils import autoreload
-from docker import APIClient
-
-
 from django.core.management import BaseCommand
+from docker import APIClient
 from django.core.management.commands.runserver import Command as DjangoRunserverCommand
-from daphne.management.commands.runserver import RunserverCommand
 
+from config.settings import BASE_DIR
 
 docker_client = APIClient()
 AHSUser = get_user_model()
@@ -28,32 +21,8 @@ AHSUser = get_user_model()
 logger = logging.getLogger("django.channels.server")
 
 
-
-
-def delete_dirs_with_name(base_dir, target_dir_name):
-    for root, dirs, files in os.walk(base_dir, topdown=False):
-        for dir_name in dirs:
-            if dir_name == target_dir_name:
-                dir_path = os.path.join(root, dir_name)
-                shutil.rmtree(dir_path)
-
-
-def get_or_create_superuser() -> Tuple[str, str]:
-    try:
-        admin = AHSUser.objects.filter(is_superuser=True).first()
-    except AHSUser.DoesNotExist:
-        admin = None
-
-
-
-
-class Command(DjangoRunserverCommand):
+class Command(BaseCommand):
     help = "Runs AHS Admin Panel and is kind of an entrypoint script at for the docker environment"
-
-    requires_system_checks = []
-    stealth_options = ("shutdown_message",)
-    suppressed_base_arguments = {"--verbosity", "--traceback"}
-
 
     default_environment = 'development'
 
@@ -74,47 +43,11 @@ class Command(DjangoRunserverCommand):
         }
 
     def add_arguments(self, parser):
-
         parser.add_argument(
-            "--noasgi",
-            action="store_false",
-            dest="use_asgi",
-            default=True,
-            help="Run the old WSGI-based runserver rather than the ASGI-based one",
+            'cleanmigrations',
+            nargs='?',
+            help='Clean all migration files in the migration directories',
         )
-
-        parser.add_argument(
-            "--skip-checks",
-            action="store_true",
-            help="Skip system checks.",
-        )
-
-        parser.add_argument(
-            '--docker',
-            action='store_true',
-            type=bool,
-            dest='docker',
-            default=True,
-            help='Run AHS Admin Panel in docker environment',
-        )
-        parser.add_argument(
-            '--purge',
-            action='store_true',
-            dest='purge',
-            type=bool,
-            default=False,
-            help='Purge all docker containers, volumes, migration dirs',
-        )
-
-        parser.add_argument(
-            "-w",
-            "--workers",
-            dest="workers",
-            help="The number of workers to spawn and use",
-            default=2,
-            type=int,
-        )
-
 
     def collect_info(self):
         containers = self._docker_client.containers()
@@ -186,7 +119,7 @@ class Command(DjangoRunserverCommand):
     def overwrite_env_vars(self):
         """Overwrite env vars for socket access over docker mounts"""
         os.environ['DB_HOST'] = self._docker['postgres']['socket']
-        os.environ['REDIS_HOST'] = 'unix://' + self._docker['redis']['socket'] + '/redis.sock'
+        os.environ['REDIS_HOST'] = 'system://' + self._docker['redis']['socket'] + '/redis.sock'
 
     def save_new_socket_addresses_in_env_file(self):
         ow = input('Do you want to overwrite the sockets in your env file? (Y/n):')
@@ -197,7 +130,7 @@ class Command(DjangoRunserverCommand):
                 if line.startswith('DB_HOST'):
                     lines[lines.index(line)] = f"DB_HOST={self._docker['postgres']['socket']}\n"
                 elif line.startswith('REDIS_HOST'):
-                    lines[lines.index(line)] = f"REDIS_HOST=unix://{self._docker['redis']['socket']}/redis.sock\n"
+                    lines[lines.index(line)] = f"REDIS_HOST=system://{self._docker['redis']['socket']}/redis.sock\n"
             with open('.env', 'w') as f:
                 f.writelines(lines)
 
@@ -218,9 +151,6 @@ class Command(DjangoRunserverCommand):
 
 
     def handle(self, *args, **kwargs):
-        if kwargs.get('purge', ''):
-            pass
-
 
         hostname = kwargs['hostname']
         port = kwargs['port']

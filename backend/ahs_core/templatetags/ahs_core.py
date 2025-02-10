@@ -36,4 +36,4 @@ def svg_icon(icon_name, extra_class=''):
         'class="icon-{name} {extra}">'
         '<use xlink:href="#{name}"></use>'
         '</svg>', name=icon_name, extra=extra_class)
-    return mark_safe(svg_tag)
+    return svg_tag
