@@ -4,8 +4,10 @@ from django.urls import re_path
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
-from backend.core.consumers.terminal import AsyncWebsocketTerminal
-from backend.core.consumers.dispatcher import AHSChannelDispatcher
+
+from backend.ahs_core.consumers.channelsmultiplexer import AsyncJsonWebsocketDemultiplexer
+from backend.ahs_core.consumers.terminal_dispatcher import AsyncWebsocketTerminal
+from backend.ahs_core.consumers.command_dispatcher import AHSCommandConsumer
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.ahs_config')
 
@@ -20,10 +22,12 @@ application = ProtocolTypeRouter({
     'websocket': AllowedHostsOriginValidator(
         AuthMiddlewareStack(
             URLRouter([
-                re_path(r"^ws/(?P<room_name>[a-zA-Z]+)/(?P<pty>pty[0-9]{1,5})/$",
-                        AsyncWebsocketTerminal.as_asgi(), name="terminal_socket"),
                 re_path(r"^ws/(?P<socket_url>[0-9a-f-]{36})/$",
-                        AHSChannelDispatcher.as_asgi(), name="main_socket"),
+                    AsyncJsonWebsocketDemultiplexer.as_asgi(
+                        command = AHSCommandConsumer.as_asgi(),
+                        terminal = AsyncWebsocketTerminal.as_asgi(),
+                    )
+                ),
             ])
         )
     ),
