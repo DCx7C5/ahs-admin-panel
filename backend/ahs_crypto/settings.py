@@ -17,18 +17,8 @@ DEFAULTS = {
     'ECC_DB_ENCODING': 'DER',
     'ECC_FILE_ENCODING': 'PEM',
     'ECC_PRIVKEY_MODEL': 'PrivateKey',
+    'ECC_PUBKEY_MODEL': 'PublicKey',
 }
-
-def validate_settings():
-    for setting in REQUIRED_SETTINGS:
-        if not hasattr(settings, setting):
-            raise ValueError(f"The required setting '{setting}' is missing!")
-        else:
-            value = getattr(settings, setting)
-            if value != f"{AhsCryptoConfig.name}.ecc.ECC":
-                raise ValueError(f"The setting '{setting}' must be set to '{AhsCryptoConfig.name}.ecc.ECC', "
-                                 f"to activate ECC crypto module!")
-
 
 ECC_BACKEND = getattr(settings, 'ECC_BACKEND')
 ECC_CURVE_NAME = getattr(settings, 'ECC_CURVE_NAME', DEFAULTS['ECC_CURVE_NAME'])
