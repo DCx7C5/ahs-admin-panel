@@ -17,7 +17,7 @@ from backend.ahs_core.utils import parse_func_signature
 logging.getLogger('daphne.ws_protocol').setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 class CmdMapper:

@@ -29,7 +29,7 @@ from backend.apps.workspaces.models import Workspace
 
 logger = logging.getLogger(__name__)
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 def populate_endpoints():
@@ -133,7 +133,7 @@ class Command(BaseCommand):
         """
         Ensure that at least one superuser exists in the system. If not, create one.
         """
-        superuser_exists = AHSUser.objects.filter(is_superuser=True).exists()
+        superuser_exists = User.objects.filter(is_superuser=True).exists()
 
         if not superuser_exists:
             self.stdout.write(self.style.WARNING("No superuser found. Creating a new one now..."))

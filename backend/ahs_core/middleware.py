@@ -7,7 +7,7 @@ from backend.ahs_accounts.serializers import AHSUserSerializer
 from backend.ahs_endpoints.models import EndPoint
 from backend.ahs_endpoints.serializers import EndPointSerializer
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 class AHSMiddleware:

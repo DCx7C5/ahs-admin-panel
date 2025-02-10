@@ -6,13 +6,13 @@ from django.db.models.indexes import Index
 
 logger = logging.getLogger(__name__)
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 class Workspace(Model):
 
     owner = ForeignKey(
-        AHSUser,
+        User,
         on_delete=CASCADE,
         related_name='workspaces',
         related_query_name='workspace',

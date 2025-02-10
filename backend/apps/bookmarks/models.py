@@ -15,7 +15,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 class Tag(Model):
@@ -232,7 +232,7 @@ class BookmarksProfile(Model):
         - Associated bookmarks through the `owner` relationship.
     """
     user = OneToOneField(
-        to=AHSUser,
+        to=User,
         on_delete=CASCADE,
         to_field='id',
     )

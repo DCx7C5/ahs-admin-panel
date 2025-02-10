@@ -6,7 +6,7 @@ from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
 
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 def is_valid_uuid(socket_url):
@@ -37,13 +37,13 @@ async def validate_socket_url(socket_url: UUID, user):
     return True
 
 
-def validate_ahsuser(ahsuser: AHSUser):
+def validate_ahsuser(ahsuser: User):
 
     if not ahsuser:
         raise ValidationError("ahsuser is missing.")
 
-    if not isinstance(ahsuser, AHSUser):
-        raise ValidationError("ahsuser is not an instance of AHSUser.")
+    if not isinstance(ahsuser, User):
+        raise ValidationError("ahsuser is not an instance of User.")
 
     if not ahsuser.is_authenticated:
         raise ValidationError("ahsuser is not authenticated.")

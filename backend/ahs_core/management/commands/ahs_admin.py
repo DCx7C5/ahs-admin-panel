@@ -15,7 +15,7 @@ from django.core.management.commands.runserver import Command as DjangoRunserver
 from config.settings import BASE_DIR
 
 docker_client = APIClient()
-AHSUser = get_user_model()
+User = get_user_model()
 
 # Make sure we have a logger
 logger = logging.getLogger("django.channels.server")

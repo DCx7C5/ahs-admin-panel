@@ -17,7 +17,7 @@ from backend.ahs_core.consumers.cmd_parser import CommandMapper
 logger = logging.getLogger(__name__)
 
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 @dataclass
@@ -30,7 +30,7 @@ class Command:
     func_name: str
     func_args: List[str | int | float | bool | UUID]
     func_kwargs: Dict[str, str | int | float | bool | UUID]
-    owner: AHSUser
+    owner: User
     channel_name: str
     page_name: str
     app_name: str
@@ -110,7 +110,7 @@ class Command:
             func_name=data['func_name'],
             func_args=data['func_args'],
             func_kwargs=data['func_kwargs'],
-            owner=AHSUser.objects.get(id=data['owner']),
+            owner=User.objects.get(id=data['owner']),
             channel_name=data['channel_name'],
             page_name=data['page_name'],
             app_name=data['app_name'],

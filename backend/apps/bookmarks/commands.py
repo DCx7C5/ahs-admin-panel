@@ -8,7 +8,7 @@ from backend.apps.bookmarks.serializer import CategorySerializer, BookmarkSerial
 from backend.ahs_core.consumers.cmd_parser import websocket_cmd
 
 logger = logging.getLogger(__name__)
-AHSUser = get_user_model()
+User = get_user_model()
 
 @websocket_cmd
 async def get_bm_categories(user):
@@ -19,7 +19,7 @@ async def get_bm_categories(user):
     bookmark categories for a given user, serializes them, and yields the results.
 
     Args:
-        user (:model:`ahs_accounts.AHSUser`): The user for whom the categories are being retrieved.
+        user (:model:`ahs_accounts.User`): The user for whom the categories are being retrieved.
 
     Yields:
         dict: Serialized bookmark category data using :model:`bookmarks.Category`.
@@ -41,7 +41,7 @@ async def get_bm_categories(user):
 
 
 @websocket_cmd
-async def get_bookmarks(uuid: UUID, user: AHSUser, id: int):
+async def get_bookmarks(uuid: UUID, user: User, id: int):
     """
     Fetch bookmarks associated with a specific UUID and user.
 
@@ -51,7 +51,7 @@ async def get_bookmarks(uuid: UUID, user: AHSUser, id: int):
 
     Args:
         uuid (UUID): The universally unique identifier associated with the set of bookmarks.
-        user (:model:`ahs_accounts.AHSUser`): The user whose bookmarks are being retrieved.
+        user (:model:`ahs_accounts.User`): The user whose bookmarks are being retrieved.
         id (int): An additional identifier (e.g., UI context or API tracking purpose).
 
     Yields:

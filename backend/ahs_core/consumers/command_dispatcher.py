@@ -9,7 +9,7 @@ from backend.ahs_core.consumers.command import Command
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 

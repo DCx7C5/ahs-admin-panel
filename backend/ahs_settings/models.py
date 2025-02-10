@@ -4,7 +4,7 @@ from django.db.models import JSONField
 from django.utils.translation import gettext_lazy as _
 
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 class Settings(models.Model):
@@ -28,7 +28,7 @@ class Settings(models.Model):
             to True.
         created_at: A datetime field automatically set when the setting is created.
         updated_at: A datetime field automatically updated when the setting is modified.
-        updated_by: A foreign key to :model:`ahs_core.AHSUser` indicating the user
+        updated_by: A foreign key to :model:`ahs_core.User` indicating the user
             who last updated this setting.
         module: An optional string field representing the module or feature to
             which this setting belongs.
@@ -83,7 +83,7 @@ class Settings(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     updated_by = models.ForeignKey(
-        AHSUser,
+        User,
         on_delete=models.CASCADE,
     )
 
