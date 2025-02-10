@@ -13,7 +13,7 @@ from django.db.models import (
 )
 from django.utils.translation import gettext as _
 
-from backend.core.models.mixins import (
+from backend.ahs_core.mixins import (
     UpdateDateMixin,
 )
 

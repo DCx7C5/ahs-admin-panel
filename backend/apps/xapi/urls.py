@@ -1,11 +1,11 @@
 from django.urls import path
 
-from backend.core.views import async_dashboard_view
+from backend.ahs_core.views import async_dashboard_view
 
 app_name = 'xapi'
 
 urlpatterns = [
-    path('settings/', async_dashboard_view, name='settings'),
+    path('ahs_settings/', async_dashboard_view, name='ahs_settings'),
     path('', async_dashboard_view, name='stats'),
 ]
 
