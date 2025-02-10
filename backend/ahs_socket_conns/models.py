@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from backend.apps.network.models.hosts import Host
 
-AHSUser = get_user_model()
+User = get_user_model()
 
 
 class SocketConnection(Model):
@@ -39,7 +39,7 @@ class SocketConnection(Model):
         lport (int): Stores the local port associated with the connection on the local host.
                      The value should remain between 0 and 65535.
         user (ForeignKey): User connected to the socket, represented by a foreign key to
-                           the `AHSUser` model.
+                           the `User` model.
         connected_at (datetime): Timestamp of when the connection was established.
                                  Automatically set upon creation.
         rhost (ForeignKey): Refers to the remote host associated with this connection.
@@ -94,7 +94,7 @@ class SocketConnection(Model):
     )
 
     user = ForeignKey(
-        AHSUser,
+        User,
         on_delete=CASCADE,
         related_name='active_connections',
         related_query_name='active_connection',
@@ -132,6 +132,8 @@ class SocketConnection(Model):
     )
 
     class Meta:
+        app_label = "ahs_socket_conns"
+        db_table = "ahs_core_socket_connection"
         verbose_name = "Socket Connection"
         verbose_name_plural = "Socket Connections"
         ordering = ['-connected_at']
@@ -157,10 +159,6 @@ class SocketConnection(Model):
             Index(fields=['rhost', 'rport'], name='rhost_idx'),
         ]
 
-        permissions = [
-            ('can_view_socket_connections', 'Can view socket connections'),
-            ('can_disconnect_sockets', 'Can disconnect socket connections'),
-        ]
 
     def __str__(self):
         return f"Connection {self.url} {'active' if self.is_active else 'inactive'}"
