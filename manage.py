@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+"""Django's command-line utility for administrative ahs_tasks."""
 import os
 import sys
 
@@ -7,7 +7,7 @@ import sys
 
 
 def main():
-    """Run administrative tasks."""
+    """Run administrative ahs_tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.ahs_config')
 
     try:

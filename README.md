@@ -9,6 +9,44 @@
 
 ---
 
+# Project Overview: Apps Breakdown
+
+This project contains various Django apps, divided into **Core Apps** and **Plugins**, that provide modular and extendable functionality.
+
+
+## Core Modules 
+These essential apps handle the foundational features of the project:
+
+- **[ahs_crypto](backend/ahs_crypto)**: Handles cryptographic operations, including secure key generation and authentication.
+- **[ahs_accounts](backend/ahs_accounts)**: Manages user accounts, profiles, and permissions for authentication.
+- **[ahs_sessions](backend/ahs_sessions)**: Provides secure session management for user interactions.
+- **[ahs_core](backend/ahs_core)**: Core utilities and shared functionalities across the project.
+- **[ahs_channels](backend/ahs_channels)**: Implements real-time communications, such as WebSocket support.
+- **[ahs_endpoints](backend/ahs_endpoints)**: Manages API definitions for interacting with external systems.
+- **[ahs_settings](backend/ahs_settings)**: Central configuration management for application settings.
+- **[ahs_socket_conns](backend/ahs_socket_conns)**: Handles socket-based connections for real-time interactions.
+- **[ahs_tasks](backend/ahs_tasks)**: Manages background tasks and asynchronous job processing.
+- **[ahs_workers](backend/ahs_workers)**: Worker processes for handling background tasks and distributed workloads.
+
+---
+
+## Plugins / Apps 
+These apps provide additional features and extensibility:
+
+- **[apps](backend/apps)**: A container app for modular plugins.
+- **[bookmarks](backend/apps/bookmarks)**: Adds bookmarking functionality for user-specific content.
+- **[network](backend/apps/network)**: Handles network-related functionality, such as monitoring and communication.
+- **[osint](backend/apps/osint)**: Tools for Open Source Intelligence (OSINT), gathering data from public sources.
+- **[system](backend/apps/system)**: A suite for managing system-level resources, with submodules:
+  - [cpu](backend/apps/system/cpu): Monitors CPU resource usage.
+  - [filesystem](backend/apps/system/filesystem): Handles filesystem operations and monitoring.
+  - [docker](backend/apps/system/docker): Manages Docker containers and environments.
+  - [security](backend/apps/system/security): Provides system security tools, such as audits.
+- **[workspaces](backend/apps/workspaces)**: Implements collaborative user or team workspaces.
+- **[xapi](backend/apps/xapi)**: Manages XAPI integrations for external connectivity.
+
+---
+
 ### How to start:
 
 ###### Create new secret and update the SECRET_KEY env var in `.env`:
@@ -54,7 +92,7 @@ DB_PASS=<YOUR_DB_PASSWORD>
 DB_NAME=ahs_dev
 DB_HOST=
 DB_PORT=
-DJANGO_SETTINGS_MODULE='adminpanel.settings'
+DJANGO_SETTINGS_MODULE='adminpanel.ahs_settings'
 DB_BACKUP_ON_SHUTDOWN=1
 DB_RESTORE_ON_START=0
 ```
@@ -67,30 +105,11 @@ DB_RESTORE_ON_START=0
 
 ---
 
-#### Initial Setup via `makefile`:
-```bash
-  $ make setup
-```
-###
+# **Makefile Overview**
+
+This project includes a `Makefile` to simplify and automate common development tasks. It provides easy-to-use commands for setting up the development environment, managing dependencies, cleaning files, and working with Docker. Below is an overview of its primary use cases and key commands.
 
 ---
-
-##### The `makefile` goes through the following steps:
-- creates `.venv/` virtual environment for python 
-- installs python and requirements
-- starts ahs-admin-panel docker compose service
-- installs npm and dependencies in ahs_node container
-- makes migrations
-- migrates
-- creates django admin account
-- loads needed fixtures into DB
-
-###
-
----
-
-
-
 
 #### Run the development server
 Start the local Django development server after completing the setup.
@@ -102,31 +121,4 @@ Start the local Django development server after completing the setup.
 Access the server at [http://localhost:8000](http://localhost:8000).
 
 ---
-
-#### Useful Docker Commands
-- **Start services**: `docker compose -f docker-compose-dev.yaml -p ahs-admin-panel up -d`
-- **Stop services**: `docker compose -f docker-compose-dev.yaml -p ahs-admin-panel down`
-- **Stop services + remove containers**: `docker compose -f docker-compose-dev.yaml -p ahs-admin-panel down`
-- **Restart Docker services**: `docker compose restart`
-
-
----
-
-
-#### Makefile Commands
-
-The project provides a `Makefile` to simplify common tasks. Below is a list of available commands:
-
-| Command               | Description                                                                                                   |
-|-----------------------|---------------------------------------------------------------------------------------------------------------|
-| `make setup`          | Sets up the project by creating a Python virtual environment, installing dependencies, and starting services. |
-| `make migrate`        | Runs database migrations for all Django apps.                                                                 |
-| `make makemigrations` | Generates database migrations for all Django apps.                                                            |
-| `make clean`          | Cleans up temporarily generated files like sockets and migrations.                                            |
-| `make purge`          | Stops services, removes containers, volumes, images, and cleans temp files.                                   |
-| `make load-fixtures`  | Loads fixtures into the database (important for initial setup).                                               |
-
-Use these commands to streamline your local development workflow.
-
-<br>
 
