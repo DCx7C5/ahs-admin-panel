@@ -7,19 +7,19 @@ from django.utils.translation import gettext_lazy as _
 AHSUser = get_user_model()
 
 
-class AHSSettings(models.Model):
+class Settings(models.Model):
     """
     Represents a configurable application or framework setting.
 
-    The AHSSettings model is designed to store key-value pairs representing settings
+    The AHSSettings model is designed to store key-value pairs representing ahs_settings
     for the application or specific modules. Settings can be of different types
-    (e.g., AHS or Django settings), and include optional descriptions, activity
+    (e.g., AHS or Django ahs_settings), and include optional descriptions, activity
     status, and the ability to categorize based on modules. This model allows for
     effective management of application configurations.
 
     Attributes:
         type: A string field that specifies the type of the setting. Choices are
-            "ahs" for AHS Setting or "django" for Django Setting.
+            "ahs_core" for AHS Setting or "django" for Django Setting.
         key: A unique string field representing the key or name of the setting.
         value: A text field storing the value of the setting as a string.
         description: An optional text field providing a descriptive summary of the
@@ -28,13 +28,13 @@ class AHSSettings(models.Model):
             to True.
         created_at: A datetime field automatically set when the setting is created.
         updated_at: A datetime field automatically updated when the setting is modified.
-        updated_by: A foreign key to :model:`core.AHSUser` indicating the user
+        updated_by: A foreign key to :model:`ahs_core.AHSUser` indicating the user
             who last updated this setting.
         module: An optional string field representing the module or feature to
             which this setting belongs.
 
     Meta:
-        app_label: The app label for the model is set to "core".
+        app_label: The app label for the model is set to "ahs_core".
         verbose_name: A human-readable name for this model is "AHS Setting".
         verbose_name_plural: The plural form of the model's name is "AHS Settings".
 
@@ -44,7 +44,7 @@ class AHSSettings(models.Model):
             "key: value".
     """
     TYPE_CHOICES = [
-        ("ahs", "AHS Setting"),
+        ("ahs_core", "AHS Setting"),
         ("django", "Django Setting"),
     ]
 
@@ -96,7 +96,8 @@ class AHSSettings(models.Model):
 
 
     class Meta:
-        app_label = "core"
+        app_label = "ahs_core"
+        db_table = "ahs_core_settings"
         verbose_name = _("AHS Setting")
         verbose_name_plural = _("AHS Settings")
         ordering = ["key"]
