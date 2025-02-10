@@ -1,4 +1,4 @@
-# Connects over unix sockets to databases, provides ports for IDE
+# Connects over system sockets to databases, provides ports for IDE
 services:
   postgres:
     build:
@@ -9,9 +9,9 @@ services:
     tty: true
     container_name: ahs_postgres
     environment:
-      POSTGRES_DB: "${DB_NAME:-ahs-dev}"
-      POSTGRES_USER: "${DB_USER:-ahs}"
-      POSTGRES_PASSWORD: "${DB_PASS:-ahs}"
+      POSTGRES_DB: "${DB_NAME:-ahs_core-dev}"
+      POSTGRES_USER: "${DB_USER:-ahs_core}"
+      POSTGRES_PASSWORD: "${DB_PASS:-ahs_core}"
     user: "999:1000"
     ports:
       - "5442:5432"  # only for IDE
