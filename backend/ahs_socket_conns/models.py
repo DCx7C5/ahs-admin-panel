@@ -13,7 +13,7 @@ from django.db.models.indexes import Index
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-from backend.core.models import Host
+from backend.apps.network.models.hosts import Host
 
 AHSUser = get_user_model()
 
@@ -28,7 +28,7 @@ class SocketConnection(Model):
     attributes in a structured manner.
 
     Attributes:
-        url (str): The URL of the socket connection, typically referencing the endpoint
+        url (str): The URL of the socket connection, typically referencing the ahs_endpoints
                    of the connection.
         status (str): The current state of the socket connection, with predefined
                       choices including 'connected', 'disconnected', and so on.
@@ -152,6 +152,9 @@ class SocketConnection(Model):
         indexes = [
             Index(fields=['user', 'status'], name='user_status_idx'),
             Index(fields=['connected_at'], name='connect_idx'),
+            Index(fields=['last_updated'], name='last_updated_idx'),
+            Index(fields=['lhost', 'lport'], name='lhost_idx'),
+            Index(fields=['rhost', 'rport'], name='rhost_idx'),
         ]
 
         permissions = [
