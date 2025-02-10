@@ -49,7 +49,6 @@ export const useAHSCommand = ({webSocketIns, uniqueId, javaScriptFunction}: AHSC
       webSocketIns.send(JSON.stringify({
         "type": "command",
         "data": command,
-        // TODO: Add hash of data as checksum
       }))
   }, []);
 
