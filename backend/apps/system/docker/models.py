@@ -1,5 +1,3 @@
-from abc import ABCMeta
-
 from django.db import models
 from django.db.models import JSONField
 
@@ -70,7 +68,7 @@ class DockerContainer(models.Model):
     ports = JSONField()  # List of port mappings
     labels = JSONField(blank=True, null=True)  # Store container labels as JSON
     network_mode = models.CharField(max_length=256, blank=True, null=True)
-    networks = JSONField(blank=True, null=True)  # Store network settings as JSON
+    networks = JSONField(blank=True, null=True)  # Store network ahs_settings as JSON
 
     # Mounts (volumes and binds)
     mounts = JSONField(blank=True, null=True)  # Store mount details as JSON
@@ -82,7 +80,7 @@ class DockerContainer(models.Model):
         managed = False
 
 
-class DockerImage(models.Model, metaclass=ABCMeta):
+class DockerImage(models.Model):
     # Basic information
     id = models.CharField(max_length=256, primary_key=True)
     repo_tags = JSONField()
