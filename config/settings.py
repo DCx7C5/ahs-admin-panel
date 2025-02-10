@@ -14,9 +14,6 @@ SECRET_KEY = environ.get('SECRET_KEY')
 DEBUG = bool(environ.get('DEBUG'))
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-
-SITE_NAME = 'AHSAdminPanel'
-
 INSTALLED_APPS = [
     # ASGI Server
     'hypercorn',
@@ -45,12 +42,35 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'graphene_django',
 
-    # Local mods
-    'backend.core',
-    'backend.core.accounts',
+    # Core Apps
+    'backend.ahs_crypto',
+    'backend.ahs_accounts',
+    'backend.ahs_sessions',
+
+    'backend.ahs_core',
+    'backend.ahs_channels',
+    'backend.ahs_endpoints',
+    'backend.ahs_settings',
+    'backend.ahs_socket_conns',
+    'backend.ahs_tasks',
+    'backend.ahs_workers',
+
+    # Apps / Plugins
+    'backend.apps',
     'backend.apps.bookmarks',
+    'backend.apps.network',
+    'backend.apps.osint',
+    'backend.apps.system',
+    'backend.apps.system.cpu',
+    'backend.apps.system.filesystem',
+    'backend.apps.system.docker',
+    'backend.apps.system.security',
+    'backend.apps.workspaces',
     'backend.apps.xapi',
 ]
+
+SITE_NAME = 'AHSAdminPanel'
+
 
 
 MIDDLEWARE = [
@@ -63,8 +83,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'backend.core.middleware.AHSMiddleware',
-
+    'backend.ahs_core.middleware.AHSMiddleware',
 ]
 
 ROOT_URLCONF = 'adminpanel.urls'
@@ -125,13 +144,12 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_REDIRECT_URL = 'core:dashboard'
+LOGIN_REDIRECT_URL = 'ahs_core:dashboard'
 LOGOUT_REDIRECT_URL = 'login'
-
 LOGIN_URL = 'login'
 LOGOUT_URL = 'logout'
 
-AUTH_USER_MODEL = "accounts.AHSUser"
+AUTH_USER_MODEL = "ahs_accounts.AHSUser"
 
 INTERNAL_IPS = [
     '127.0.0.1',
@@ -141,8 +159,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://localhost:3000",
+]
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',

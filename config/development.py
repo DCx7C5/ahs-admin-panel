@@ -16,13 +16,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
 CORS_ORIGIN_WHITELIST = [
-
-     'http://localhost:3000',  # The default port for create-react-app
-
+    'http://localhost:3000',  # The default port for create-react-app
 ]
 # Database
 
-# DB_HOST and DB_PORT env vars must be None in order to connect over unix socket,
+# DB_HOST and DB_PORT env vars must be None in order to connect over system socket,
 # which is faster (missing network stack).
 #
 # The DB container forwards host port 5433 to container port 5432 to be able to connect
@@ -78,14 +76,14 @@ LOGGING = {
         'asyncio': {
             'level': 'INFO',  # INFO to suppress early initialisation logs. Set to DEBUG again in cmd_parser.py.
         },
-        'backend.core': {
+        'backend.ahs_core': {
             'level': 'DEBUG',
             'propagate': True,
         },
-        'backend.core.consumers.cmd_parser': {
+        'backend.ahs_core.consumers.cmd_parser': {
             'level': 'INFO',  # INFO to suppress early initialisation logs. Set to DEBUG again in cmd_parser.py.
             'handlers': ['console', 'rotating_file'],
-            'propagate': False,  # Prevent logs from duplicating in `backend.core`
+            'propagate': False,  # Prevent logs from duplicating in `backend.ahs_core`
         },
     },
 }
@@ -151,7 +149,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 GRAPHENE = {
-    'SCHEMA': 'core.schema.schema'
+    'SCHEMA': 'ahs_core.schema.schema'
 }
 
 # security related stuff
