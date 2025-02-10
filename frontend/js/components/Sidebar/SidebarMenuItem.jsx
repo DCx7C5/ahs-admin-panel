@@ -11,8 +11,8 @@ export const SidebarMenuItem = ({item, onLinkClick}) => {
     window.location.href = path;
   };
 
-  const renderMenuItem = (menuItem, isSubmenu = false) => {
-    const {order, path, name, icon, children} = menuItem;
+  const renderMenuItem = (item, isSubmenu = false) => {
+    const {order, path, name, icon, children} = item;
     const itemIsActive = currentPath === path;
 
     return (

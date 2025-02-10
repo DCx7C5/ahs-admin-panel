@@ -1,19 +1,19 @@
-import React, {use, useCallback, useEffect, useState} from 'react';
+import React, {use, useCallback, useEffect, useRef, useState} from 'react';
 import BookmarkCategory from "./BookmarkCategory";
-import {SocketContext} from "../SocketProvider";
 import './css/bookmarks.scss'
+import useAHSCommand from "../../hooks/useAHSCommand";
+import {SocketContext} from "../SocketProvider";
+import {ChannelContext} from "../ChannelProvider";
+
 
 
 const Bookmarks = () => {
+  const { webSocketIns, readyState} = use(ChannelContext)
+  const requestDone = useRef(false)
   const [categories, setCategories] = useState([])
-  const {
-    webSocketIns,
-    readyState,
-    registerMsgCallback,
-  } = use(SocketContext)
+
 
   useEffect(() => {
-    registerMsgCallback('bookmarks', 'get_bm_categories', saveCategory)
     console.log('bookmarks mounted')
 
     return () => {
@@ -21,32 +21,31 @@ const Bookmarks = () => {
     }
   }, []);
 
-
   useEffect(() => {
-    if (readyState === 1 && webSocketIns && categories.length === 0) {
+    if (!requestDone.current && readyState === 1 && webSocketIns) {
       getCategories()
+      requestDone.current = true
+      console.log('WebSocket is open, fetching categories')
     }
-  }, [readyState, webSocketIns, categories])
+  }, [readyState, webSocketIns, categories, requestDone])
 
   const saveCategory = useCallback((data) => {
     console.log('saveCategory', data)
     setCategories((prevState) =>[...prevState, data])
   },[setCategories])
 
-
   const getBookmarks = useCallback((uniqueId, id) => {
     webSocketIns.send(JSON.stringify({
-      app: "bookmarks",
+      type: "command.request",
       func_name: "get_bookmarks",
-      func_args: [id],
-      unique_call_id: uniqueId,
+      func_args: [id, uniqueId],
+      unique_id: uniqueId,
     }))
   }, [webSocketIns])
 
-
   const getCategories = () => {
     webSocketIns.send(JSON.stringify({
-      app: "bookmarks",
+      type: "command.request",
       func_name: "get_bm_categories",
     }))
   }

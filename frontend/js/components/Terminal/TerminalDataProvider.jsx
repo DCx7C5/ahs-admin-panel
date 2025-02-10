@@ -18,7 +18,6 @@ export const TerminalProvider = ({ children }) => {
     disconnect,
     webSocketIns,
     readyState,
-    sendMessage,
   } = useSocket(
     `terminal/pty0/`,
     {

@@ -1,12 +1,10 @@
-import React, {createContext, useRef, ReactNode} from "react";
+import React, {createContext, useRef, ReactNode, useEffect} from "react";
 
 
-interface DataContextType {
+export interface DataContextType {
   user: Record<string, any>;
-  menuItems: Record<string, any>;
-  socketUrl: string; // Notice this expects an object, not a string
+  pages: any;
 }
-
 
 
 export const DataContext = createContext<DataContextType | null>(null);
@@ -26,18 +24,16 @@ interface DataProviderProps {
   children: ReactNode;
 }
 
-export const AhsDataProvider: React.FC<DataProviderProps> = ({children}) => {
+export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
 
   const userRef = useRef(parseDataFromElement('user-data'));
-  const menuRef = useRef(parseDataFromElement('menu-data'));
-  const socketRef = useRef(parseDataFromElement('socket-url'))
+  const pagesRef = useRef(parseDataFromElement('page-data'));
 
   return (
     <DataContext.Provider
       value={{
         user: userRef.current,
-        menuItems: menuRef.current,
-        socketUrl: atob(socketRef.current["path"])
+        pages: pagesRef.current,
       }}
     >
       {children}
@@ -46,4 +42,4 @@ export const AhsDataProvider: React.FC<DataProviderProps> = ({children}) => {
 };
 
 
-export default AhsDataProvider;
+export default DataProvider;

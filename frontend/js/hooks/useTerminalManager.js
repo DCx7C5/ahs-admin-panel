@@ -27,13 +27,11 @@ export const useTerminalManager = ({
 
   const getActiveSession = useCallback(() => {
     const s = sessions.find((session) => session.active); // Return the active session object or undefined if none is active
-    console.log('getActiveSession', s)
     return s;
   }, [sessions]);
 
   const getActiveSessionId = useCallback(() => {
     const activeSession = sessions.find((session) => session.active);
-    console.log('getActiveSessionId', activeSession);
     // Return the activeSession's id (or -1 if there's no active session)
     return activeSession ? activeSession.id : -1;
   }, [sessions]);
@@ -56,14 +54,14 @@ export const useTerminalManager = ({
         )
       )
     }
-  }, [sessions, webSocketIns]);
+  }, [webSocketIns, getActiveSession]);
 
 
   const attachToWebSocket = useCallback((session) => {
     const attachAddon = new AttachAddon(session.webSocketIns);
     session.xterm.loadAddon(attachAddon);
     session.webSocketIns = webSocketIns;
-  },[])
+  },[webSocketIns])
 
   /**
    * Create a new session.
@@ -104,8 +102,6 @@ export const useTerminalManager = ({
         serializeAddon: serializeAddon,
         unicode11Addon: unicode11Addon,
         webSocketIns: webSocketIns,
-        wsConnect: () => connect(),
-        wsDisconnect: () => disconnect(),
         attachAddon: null,
         state: null,
         close: () => {
@@ -142,7 +138,7 @@ export const useTerminalManager = ({
       );
       return session;
     },
-    [sessions]
+    [sessions.length, connect, count, webSocketIns, contentRef.current, attachToWebSocket]
   );
 
   const changeToSession = useCallback((toSession, fromSession = null) => {
@@ -174,7 +170,7 @@ export const useTerminalManager = ({
     }
 
     console.log(`Switched to session: ${session.name}`);
-  }, [sessions, getSessionById, setSessions]);
+  }, [getSessionById, setSessions]);
 
   const closeSession = useCallback((sessionId) => {
     const session = getSessionById(sessionId);
@@ -201,7 +197,7 @@ export const useTerminalManager = ({
     sessions.forEach((session) => session.xterm.dispose());
     setSessions([]);
     console.log("All sessions closed.");
-  }, []);
+  }, [sessions]);
 
   return {
     sessions,

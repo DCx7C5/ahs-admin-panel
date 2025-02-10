@@ -1,51 +1,35 @@
-import React, {use, useEffect} from 'react';
-import {DataContext} from "./AhsDataProvider";
-import SocketProvider from "./SocketProvider";
+import React, {StrictMode, use, useEffect, useState} from 'react';
+import ChannelProvider from "./ChannelProvider";
+import RestrictedContent from "./RestrictedContent";
+import {DataContext, DataContextType} from "./DataProvider";
 
 interface PageProps {
   children: React.ReactNode;
-  title: string;
-  headerContent: React.ReactNode;
-}
-
-interface PageWrapperProps {
-  children: React.ReactNode;
 }
 
 
-export const Page: React.FC<PageProps> = (
-    {
-      children,
-      title = null,
-      headerContent = null,
-    }
+export const Page: React.FC<PageProps> = ({children}
 ) => {
-  return (
-    <>
-      <div className="page-header">
-        {headerContent || (title && <h1 className="page-title">{title}</h1>)}
-      </div>
-      {children}
-    </>
-  );
-};
+    const { socketUrl, pages } = use<DataContextType>(DataContext);
+    const [title, setTitle] = useState(pages[window.location.pathname])
 
-export const PageWrapper: React.FC<PageWrapperProps> = ({children}) => {
-  const { socketUrl } = use(DataContext);
+    useEffect(() => {
+        console.log("Page | Mounted component with endPoint: ", window.location.pathname);
 
-  useEffect(() => {
-    console.log("PAGE WRAPPER MOUNTED", socketUrl)
-  }, [socketUrl]);
+    }, []);
 
-  return (
-    <SocketProvider
-        endPoint={socketUrl}
-        manual={false}
-        mode='channel'
-    >
-      {children}
-    </SocketProvider>
-  );
+    return (
+        <RestrictedContent>
+            <ChannelProvider>
+                <StrictMode>
+                    <div className="page-header">
+                        {title && <h1 className="page-title">{title}</h1>}
+                    </div>
+                    {children}
+                </StrictMode>
+            </ChannelProvider>
+        </RestrictedContent>
+    );
 };
 
 export default Page;

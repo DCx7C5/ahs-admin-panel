@@ -9,7 +9,7 @@ module.exports = (env, argv) => {
 
   return {
     mode: isDev ? "development" : "production",
-    devtool: isDev ? "inline-source-map": "source-map",
+    devtool: isDev ? "source-map": "source-map",
     entry: {
       index: "./js/index",
     },

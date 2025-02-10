@@ -1,6 +1,6 @@
 import React, {use, useRef} from 'react';
 import {createPortal} from "react-dom";
-import {DataContext} from "../AhsDataProvider";
+import {DataContext} from "../DataProvider";
 import SidebarFooter from "./SidebarFooter";
 import SidebarProfile from "./SidebarProfile";
 import SidebarMenu from "./SidebarMenu";

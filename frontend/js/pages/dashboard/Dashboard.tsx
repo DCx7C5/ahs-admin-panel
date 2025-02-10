@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React from "react";
 import RealTimeClock from "./Clock";
 import "@/../css/dash.scss";
 import Page from "../../components/Page";

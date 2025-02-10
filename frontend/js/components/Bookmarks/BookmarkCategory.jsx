@@ -17,9 +17,6 @@ export const BookmarkCategory = ({categoryData, getBookmarks}) => {
   const [bookmarks, setBookmarks] = useState([]);
   const { name, uuid, id, active } = categoryData;
 
-
-
-
   const handleMsgCallback = useCallback((data) => {
     setBookmarks((prevState) => [...prevState, data])
   },[setBookmarks])
