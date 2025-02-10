@@ -10,11 +10,12 @@ from django.db.models import (
     CharField,
     ManyToManyField, BooleanField
 )
+from django.db.models.constraints import UniqueConstraint
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 
-User = get_user_model()
+AHSUser = get_user_model()
 
 
 class Tag(Model):
@@ -63,6 +64,7 @@ class Tag(Model):
         app_label = 'bookmarks'
         verbose_name = 'bookmark tag'
         verbose_name_plural = 'bookmark tags'
+        db_table = 'apps_bookmarks_tag'
 
 
 class Category(Model):
@@ -127,7 +129,12 @@ class Category(Model):
         app_label = 'bookmarks'
         verbose_name = 'bookmark category'
         verbose_name_plural = 'bookmark categories'
+        db_table = 'apps_bookmarks_category'
 
+        constraints = [
+            UniqueConstraint(fields=['name', 'owner'], name='unique_name_owner_constraint'),
+            UniqueConstraint(fields=['uuid', 'owner'], name='unique_uuid_owner_constraint'),
+        ]
 
 class Bookmark(Model):
     """
@@ -195,6 +202,7 @@ class Bookmark(Model):
     class Meta:
         app_label = 'bookmarks'
         verbose_name = 'bookmark'
+        db_table = 'apps_bookmarks_bookmark'
         verbose_name_plural = 'bookmarks'
 
     def icon_tag(self, w: int = 20, h: int = 20):
@@ -224,7 +232,7 @@ class BookmarksProfile(Model):
         - Associated bookmarks through the `owner` relationship.
     """
     user = OneToOneField(
-        to=User,
+        to=AHSUser,
         on_delete=CASCADE,
         to_field='id',
     )
@@ -233,16 +241,5 @@ class BookmarksProfile(Model):
         app_label = 'bookmarks'
         verbose_name = 'bookmark profile'
         verbose_name_plural = 'bookmark profiles'
+        db_table = 'apps_bookmarks_bookmarksprofile'
 
-
-async def create_bookmark(*args, **kwargs):
-    """
-    Asynchronously creates a new :model:`bookmarks.Bookmark`.
-
-    Useful for applications supporting asynchronous processing of Django models.
-
-    Args:
-        *args: Positional arguments for the :model:`bookmarks.Bookmark` instantiation.
-        **kwargs: Keyword arguments for the :model:`bookmarks.Bookmark` instantiation.
-    """
-    bookmark = await Bookmark.objects.acreate()
