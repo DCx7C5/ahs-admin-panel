@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from backend.core.models import Host
+from backend.apps.network.models.hosts import Host
 
 
 class ActiveWorkerException(Exception):
@@ -14,7 +14,7 @@ class ActiveWorkerException(Exception):
 
 
 class AsyncWorkerManager(models.Manager):
-    """Async manager to handle active workers."""
+    """Async manager to handle active ahs_workers."""
 
     async def register_worker(self, name: str, status: str = "active") -> "Worker":
         """
@@ -76,9 +76,9 @@ class AsyncWorkerManager(models.Manager):
 
     async def get_active_workers(self):
         """
-        Retrieves all active workers.
+        Retrieves all active ahs_workers.
         Returns:
-            QuerySet: A QuerySet of active workers.
+            QuerySet: A QuerySet of active ahs_workers.
         """
         return await self.filter(status="active").aget()
 
@@ -102,7 +102,7 @@ class Worker(Model):
     host = ForeignKey(
         to=Host,
         on_delete=models.CASCADE,
-        related_name='workers',
+        related_name='ahs_workers',
         null=True,
         blank=True,
         default=None
@@ -114,7 +114,8 @@ class Worker(Model):
     objects = AsyncWorkerManager()  # Custom async manager
 
     class Meta:
-        app_label = "core"
+        app_label = "ahs_core"
+        db_table = "ahs_core_workers"
         verbose_name = _("Worker")
         verbose_name_plural = _("Workers")
         ordering = ["-last_active_time"]
