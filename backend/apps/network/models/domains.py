@@ -1,62 +1,14 @@
 from django.db.models import CharField, ForeignKey, CASCADE, Model, BooleanField, DateTimeField
 from django.db.models.fields import TextField, URLField, EmailField
 
-from backend.core.models.host import Host
-from backend.core.models.mixins import CreationDateMixin, UpdateDateMixin
+from backend.apps.network.models.hosts import Host
+from backend.ahs_settings.models import Settings
+from backend.ahs_core.mixins import CreationDateMixin, UpdateDateMixin
 from django.utils.translation import gettext_lazy as _
 
-from backend.core.models.settings import AHSSettings
 
 
 class Domain(Model, CreationDateMixin, UpdateDateMixin):
-    """
-    Represents a domain name entity in the system.
-
-    The Domain class encapsulates data about domain names, including their
-    top-level domains (TLDs), registration details, status, and associations
-    with hosting entities. It also supports metadata for administrative
-    and technical purposes.
-
-    Inherits functionality for handling creation and update timestamps from
-    :model:`core.CreationDateMixin` and :model:`core.UpdateDateMixin`.
-
-    This model is used to associate domains with their respective hosting
-    information and facilitate management of domain records.
-
-    Attributes:
-        domain_name (CharField):
-            Fully qualified domain name (FQDN) of the entity, such as
-            'example.com'.
-        tld (CharField):
-            Stores the top-level domain (TLD) as a string, such as 'com',
-            'org', etc.
-        host (ForeignKey):
-            A foreign key pointing to the :model:`core.Host` model,
-            representing the hosting entity for the domain. The relationship
-            cascades on delete.
-        is_active (BooleanField):
-            Indicates whether the domain is currently active or inactive.
-        registered_by (EmailField):
-            Email address of the person or entity who registered the domain.
-        admin_contact (CharField):
-            Name of the administrative contact person for the domain.
-        tech_contact (CharField):
-            Name of the technical contact person for the domain.
-        registrar_url (URLField):
-            URL of the domain registrar managing the domain name.
-        nameservers (TextField):
-            List of nameservers associated with the domain, separated by
-            commas. Example: "ns1.example.com, ns2.example.com".
-        registration_date (DateTimeField):
-            Timestamp indicating the domain’s registration date.
-        expiry_date (DateTimeField):
-            Timestamp indicating the domain’s expiration date.
-        ssl_enabled (BooleanField):
-            Specifies whether SSL is enabled for the domain.
-        related_certificate (OneToOneField):
-            A One-to-One relationship pointing to the SSL certificate
-            object (if any) associated with the domain.
-    """
     domain_name = CharField(
         max_length=255,
         unique=True,
@@ -142,7 +94,7 @@ class Domain(Model, CreationDateMixin, UpdateDateMixin):
     )
 
     class Meta:
-        app_label = 'core'
+        app_label = 'ahs_core'
         verbose_name = 'Domain Name'
         verbose_name_plural = 'Domain Names'
         ordering = ['-registration_date']
@@ -169,19 +121,12 @@ class Domain(Model, CreationDateMixin, UpdateDateMixin):
 
 class UnifiedSettingsManager:
     """
-    A centralized manager for accessing and handling different settings models.
+    A centralized manager for accessing and handling different ahs_settings models.
     """
 
     @staticmethod
     def get_setting(key, fallback=None, model=None):
-        """
-        Retrieve a setting value by its key from the specified model.
-        :param key: The name of the setting.
-        :param fallback: The default value to return if no setting is found.
-        :param model: The model to query (e.g., AHSSettings or DjangoSettings).
-        :return: Setting value (or fallback if not found).
-        """
-        model = model or AHSSettings
+        model = model or Settings
         try:
             return model.objects.get(key=key).value
         except model.DoesNotExist:
@@ -189,13 +134,7 @@ class UnifiedSettingsManager:
 
     @staticmethod
     def set_setting(key, value, model=None):
-        """
-        Set or update a setting value by its key.
-        :param key: The name of the setting.
-        :param value: The value of the setting.
-        :param model: The model to update (e.g., AHSSettings or DjangoSettings).
-        """
-        model = model or AHSSettings
+        model = model or Settings
         setting, created = model.objects.update_or_create(
             key=key,
             defaults={'value': value},
@@ -204,10 +143,5 @@ class UnifiedSettingsManager:
 
     @staticmethod
     def all_settings(model=None):
-        """
-        Fetch all settings stored within the specified model.
-        :param model: The model to query (e.g., AHSSettings or DjangoSettings).
-        :return: QuerySet of all settings.
-        """
-        model = model or AHSSettings
+        model = model or Settings
         return model.objects.all()

@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class AillmConfig(AppConfig):
+class NetworkConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'backend.apps.aillm'
+    name = 'backend.apps.network'
