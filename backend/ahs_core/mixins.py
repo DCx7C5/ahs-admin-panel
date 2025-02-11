@@ -100,6 +100,6 @@ class TreeMixin:
 
         for child in self.children.all():  # noqa
             descendants.append(child)
-            descendants.extend(child.get_descendants())
+            descendants.extend(child.get_descendant_keys())
 
         return descendants
