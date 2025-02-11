@@ -81,13 +81,13 @@ def get_all_apps():
 
 
 def get_all_core_apps():
-    return [x for x in get_all_apps() if x.startswith('ahs')]
+    return [x for x in get_all_apps() if x.startswith('ahs') and not x.endswith('models')]
 
 def get_all_plugin_apps():
     plugins = []
     for x in get_all_apps():
         if not x.startswith('ahs'):
             if x.startswith('apps.'):
-                x.replace('apps.','')
+                x = x.split('.')[-1]
             plugins.append(x)
     return plugins
