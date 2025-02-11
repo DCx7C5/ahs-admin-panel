@@ -1,12 +1,5 @@
 [
     {
-        "model": "bookmarks.bookmarksprofile",
-        "pk": 1,
-        "fields": {
-            "user": 1
-        }
-    },
-    {
         "model": "bookmarks.category",
         "pk": 1,
         "fields": {
