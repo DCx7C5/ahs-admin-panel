@@ -1,5 +1,6 @@
 import os
 import logging
+from getpass import getpass
 
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
@@ -13,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from django.core.management import BaseCommand, CommandError
 from django.conf import settings as django_settings
 from ...utils import get_crypto_backend
+from secrets import compare_digest
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +75,7 @@ class Command(BaseCommand):
         regenerate = options['regenerate']
         out = str(options['out'])
         encoding = options['encoding']
+        password = options['password']
         priv_key_enc = pub_key_enc = "pem"
         save_to_fs = True
 
@@ -109,6 +112,13 @@ class Command(BaseCommand):
                                  '\t 2 - DER\n'
                                  '\t 3 - X962\n' +
                                  self.style.SUCCESS('>>> '))
+                if options['password'] is None:
+                    password = getpass('Choose password for private key:\n' + self.style.SUCCESS('>>> '))
+                    password2 = getpass('Confirm password:\n' + self.style.SUCCESS('>>> '))
+
+                    while not compare_digest(password.encode(), password2.encode()):
+                        password = getpass('Passwords do not match. Try again:\n' + self.style.SUCCESS('>>> '))
+                        password2 = getpass('Confirm password:\n' + self.style.SUCCESS('>>> '))
                 if encoding is None:
                     if priv_encoding == '' or (priv_encoding.lower() in ("1", "pem")):
                         priv_key_enc = Encoding.PEM
@@ -130,14 +140,13 @@ class Command(BaseCommand):
             else:
                 priv_key_enc = Encoding.PEM
                 pub_key_enc = Encoding.PEM
-
         self.stdout.write('CREATING PRIVATE ROOT KEY...')
         private_key = ec.generate_private_key(ec.SECP521R1())
         private_key_binary = private_key.private_bytes(
             encoding=priv_key_enc,
             format=PrivateFormat.PKCS8,
-            encryption_algorithm=BestAvailableEncryption(options['password'].encode()) \
-                if options['password'] else NoEncryption()
+            encryption_algorithm=BestAvailableEncryption(password.encode()) \
+                if password is not None else NoEncryption()
         )
 
         if save_to_fs:
@@ -162,7 +171,7 @@ class Command(BaseCommand):
         )
         if save_to_fs:
             self.stdout.write('SAVING PRIVATE ROOT KEY TO FILE...')
-            with open(priv_out_filename, 'wb') as f:
+            with open(pub_out_filename, 'wb') as f:
                 f.write(public_key_binary)
         else:
             self.stdout.write(public_key_binary.decode())
