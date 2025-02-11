@@ -374,3 +374,5 @@ staticfiles/
 **/public*.*
 **/bookmarks.json
 bookmarks.json
+root.private.key
+root.public.key

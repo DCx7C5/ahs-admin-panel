@@ -2,24 +2,19 @@ import getpass
 import os.path
 import logging
 import requests
-from django.contrib.auth.models import UserManager
+from django.conf import settings
 from django.urls import get_resolver
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import get_user_model
-from django.contrib.auth.management.commands.createsuperuser import Command as CreateSuperuserCommand
 from django.core.management.commands.check import Command as CheckCommand
 from django.core.management.commands.loaddata import Command as LoadDataCommand
-from django.core.management.commands.makemigrations import Command as MakeMigrationsCommand
-from django.core.management.commands.migrate import Command as MigrateCommand
 
 from backend.ahs_accounts.models import AHSUserManager
 from backend.ahs_core.models.apps import App
-from backend.ahs_crypto import ecc, get_private_key_model
 from backend.ahs_crypto.ecc import load_private_key_from_file, derive_subkey, generate_public_key, \
     serialize_public_key_to_der, serialize_private_key_to_der
-from backend.ahs_crypto.settings import ECC_ROOT_PRIVKEY_PATH
 from backend.ahs_endpoints.models import EndPoint
 from backend.apps.network.models.hosts import Host
 
@@ -115,7 +110,7 @@ class Command(BaseCommand):
             CheckCommand().run_from_argv(
                 argv=["manage.py", "check"])
 
-            self.ensure_superuser()
+            p = self.ensure_superuser()
             self.ensure_workspace()
             self.ensure_ipaddress()
             self.ensure_bookmarksprofile()
@@ -124,7 +119,7 @@ class Command(BaseCommand):
             populate_endpoints()
             self.ensure_bookmark_fixtures()
 
-            self.ensure_system_keypair()
+            self.ensure_system_keypair(p)
 
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"An error occurred: {e}"))
@@ -133,12 +128,13 @@ class Command(BaseCommand):
         """
         Ensure that at least one superuser exists in the system. If not, create one.
         """
+        password = None
         superuser_exists = User.objects.filter(is_superuser=True).exists()
 
         if not superuser_exists:
             self.stdout.write(self.style.WARNING("No superuser found. Creating a new one now..."))
-            username = getpass.getpass('Please enter username for new superuser: ')
-            email = getpass.getpass('Please enter email for new superuser: ')
+            username = input('Please enter username for new superuser: ')
+            email = input('Please enter email for new superuser: ')
             password = getpass.getpass('Please enter password for new superuser: ')
             try:
                 AHSUserManager().create_superuser(username=username, email=email, password=password)
@@ -148,7 +144,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS("Superuser created successfully."))
         else:
             self.stdout.write(self.style.SUCCESS("Superuser found. Skipping creation."))
-
+        return password
 
     def ensure_bookmark_fixtures(self):
 
@@ -288,10 +284,10 @@ class Command(BaseCommand):
 
 
     def ensure_system_keypair(self, password):
-        PrivateKey = get_private_key_model()  # noqa
+        PrivateKeyModel = get_private_key_model()  # noqa
 
-        root_key = load_private_key_from_file(ECC_ROOT_PRIVKEY_PATH, password)
-        exists = PrivateKey.objects.exists()
+        root_key = load_private_key_from_file(settings.CRYPTO_ROOT_PRIVKEY_PATH, password)
+        exists = PrivateKeyModel.objects.exists()
         if not exists:
             self.stdout.write(self.style.WARNING("No system keypair found. Deriving new private key from root key..."))
             sys_priv = derive_subkey(root_key, 0)
@@ -304,11 +300,9 @@ class Command(BaseCommand):
             ser_sys_priv = serialize_private_key_to_der(sys_priv, password)
             self.stdout.write(self.style.SUCCESS("Successfully serialized keys to DER format."))
             self.stdout.write(self.style.SUCCESS("Creating private key model object..."))
-            PrivateKey.objects.create(
+            PrivateKeyModel.objects.create(
                 private_key=ser_sys_priv,
                 public_key=ser_sys_pub,
+                user=None,
             )
             self.stdout.write(self.style.SUCCESS("Successfully created private key model object."))
-
-
-
