@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class AppsConfig(AppConfig):
+class AhsChannelsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'backend.apps'
+    name = 'backend.ahs_channels'
