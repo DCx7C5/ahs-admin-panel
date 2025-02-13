@@ -124,15 +124,3 @@ docker-prune-all:  # cleans all unused docker v,i,c's
 	@echo 'Remove unused images'
 	docker image prune -f
 	@echo 'Everything pruned'
-
-docker-compose-start:  # starts node,redis & postgres containers with compose
-	@echo 'Starting AHS docker compose service'
-	docker compose -f "$(PROJECT_DIR)/docker-compose-dev.yaml" -p "ahs-admin-panel" up -d
-
-docker-compose-stop:  # stop the service
-	@echo 'Stopping AHS docker compose service'
-	docker compose -f "$(PROJECT_DIR)/docker-compose-dev.yaml" -p "ahs-admin-panel" stop
-
-docker-compose-down:  # stops service and removes container
-	@echo 'Stopping AHS docker compose service and removing containers'
-	docker compose -f "$(PROJECT_DIR)/docker-compose-dev.yaml" -p "ahs-admin-panel" down
