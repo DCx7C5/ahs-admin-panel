@@ -197,7 +197,8 @@ SIMPLE_JWT = {
     'SIGNING_KEY': None,
     'VERIFYING_KEY': None,
 
-    "AUTH_HEADER_TYPES": ("Bearer",),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'Authorization',
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
 
