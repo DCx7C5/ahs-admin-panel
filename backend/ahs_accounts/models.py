@@ -1,9 +1,7 @@
 import logging
 import uuid
 
-from cryptography.hazmat.primitives.asymmetric import ec
-from django.contrib.auth import get_user_model
-from django.db.models import Model, ImageField, CASCADE, OneToOneField
+from django.db.models import Model, ImageField
 from django.db.models.constraints import UniqueConstraint
 from django.db.models.fields import UUIDField, DateTimeField, CharField
 from django.db.models.indexes import Index
@@ -11,35 +9,11 @@ from django.db.models.indexes import Index
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
-from django.contrib.auth.models import AbstractUser, Permission, UserManager
+from django.contrib.auth.models import AbstractUser, Permission
 
 from backend.ahs_accounts.validators import AHSUsernameValidator
-from backend.ahs_crypto import get_private_key_model
 
 logger = logging.getLogger(__name__)
-
-
-PrivateKey = get_private_key_model()
-PublicKey = get_private_key_model()
-
-
-class AHSUserManager(UserManager):
-    def create_superuser(self, username, email=None, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
-
-        return self.create_user(username, email, password, **extra_fields)
-
-    def get_superuser(self) -> "AHSUser":
-        return self.filter(is_superuser=True).get()
-
-    async def aget_superuser(self) -> "AHSUser":
-        return await self.filter(is_superuser=True).aget()
 
 
 class AHSUser(AbstractUser):
@@ -76,31 +50,6 @@ class AHSUser(AbstractUser):
         verbose_name=_('Last Modified'),
         auto_now=True,
     )
-    private_key = OneToOneField(
-        PrivateKey,
-        on_delete=CASCADE,
-        related_name='ahsuser_private_key',
-    )
-    public_key = OneToOneField(
-        PrivateKey,
-        on_delete=CASCADE,
-        related_name='ahsuser_public_key',
-    )
-
-    def set_password(self, raw_password):
-        """
-        Set the user's password and encrypt/update the private key with the password.
-        """
-        PrivateKey = get_private_key_model()  # noqa
-
-        super().set_password(raw_password)
-        sys_privkey = PrivateKey.objects.first()
-        private_key = ec.generate_private_key
-
-    objects = AHSUserManager()
-    manager = objects
-
-    # Add any other helper methods, as necessary for public key, etc.
 
     @property
     def permissions(self):
@@ -134,7 +83,7 @@ class AHSUser(AbstractUser):
             f"{app_label}.{codename}" for app_label, codename in user_permissions.union(group_permissions)
         }
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
         return reverse(
             'ahs_core:user-detail',
             kwargs={'pk': self.pk})
