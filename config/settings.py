@@ -1,3 +1,4 @@
+from datetime import timedelta
 from os import environ
 from pathlib import Path
 
@@ -10,10 +11,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = environ.get('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(environ.get('DEBUG'))
-
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 INSTALLED_APPS = [
     # ASGI Server
     'hypercorn',
@@ -30,9 +27,14 @@ INSTALLED_APPS = [
     # django channels
     'channels',
     'channels_redis',
+
+    # django rest api
     'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'adrf',
+
     'corsheaders',
 
     # webpack loader
@@ -45,7 +47,7 @@ INSTALLED_APPS = [
     # Core Apps
     'backend.ahs_crypto',
     'backend.ahs_accounts',
-    'backend.ahs_sessions',
+    'backend.ahs_api',
 
     'backend.ahs_core',
     'backend.ahs_channels',
@@ -68,6 +70,10 @@ INSTALLED_APPS = [
     'backend.apps.workspaces',
     'backend.apps.xapi',
 ]
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = bool(environ.get('DEBUG'))
+
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 SITE_NAME = 'AHSAdminPanel'
 
@@ -83,7 +89,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'backend.ahs_core.middleware.AHSMiddleware',
 ]
 
 ROOT_URLCONF = 'adminpanel.urls'
@@ -122,6 +127,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+# REST API and Token Auth
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+ROTATE_REFRESH_TOKENS = True
 
 # Internationalization
 
@@ -170,3 +184,25 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
 ]
+
+
+BLACKLIST_AFTER_ROTATION = True
+ALGORITHM = "ES521"
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'SIGNING_KEY': None,
+    'VERIFYING_KEY': None,
+
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'ALGORITHM': 'ES521',
+
+}
