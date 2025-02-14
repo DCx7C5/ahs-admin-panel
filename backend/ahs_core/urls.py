@@ -1,6 +1,5 @@
 from django.urls import path, include
 
-from backend.ahs_core.admin import custom_admin_site
 from backend.ahs_core.views import UserProfileView, async_dashboard_view, ReactView
 
 app_name = 'ahs_core'
