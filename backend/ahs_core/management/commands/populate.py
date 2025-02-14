@@ -2,25 +2,33 @@ import getpass
 import os.path
 import logging
 import requests
+
 from django.conf import settings
 from django.urls import get_resolver
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import get_user_model
+from django.contrib.auth.management.commands.createsuperuser import Command as CreateSuperuserCommand
 from django.core.management.commands.check import Command as CheckCommand
 from django.core.management.commands.loaddata import Command as LoadDataCommand
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
-from backend.ahs_accounts.models import AHSUserManager
 from backend.ahs_core.models.apps import App
-from backend.ahs_crypto.ecc import load_private_key_from_file, derive_subkey, generate_public_key, \
-    serialize_public_key_to_der, serialize_private_key_to_der
+from backend.ahs_crypto.ecc import (
+    derive_subkey,
+    generate_public_key,
+    serialize_public_key_to_der,
+    serialize_private_key_to_der,
+)
+from backend.ahs_crypto.utils import get_private_key_model, get_public_key_model
 from backend.ahs_endpoints.models import EndPoint
 from backend.apps.network.models.hosts import Host
 
 from backend.apps.bookmarks.models import BookmarksProfile
 from backend.apps.network.models.ipaddresses import IPAddress
 from backend.apps.workspaces.models import Workspace
+from secrets import compare_digest
 
 logger = logging.getLogger(__name__)
 
@@ -71,13 +79,27 @@ def populate_endpoints():
     extract_paths(resolver.url_patterns)
 
 
-
-
-
-
 class Command(BaseCommand):
-    help = "Populate the core_appmodel table with all models in the backend apps, ensuring valid object_id values, localhost entry, and superuser creation."
+    help = ("Populate the core_appmodel table with all models in the backend apps, "
+            "ensuring valid object_id values, localhost entry, and superuser creation.")
 
+    def _ask_for_password(self):
+        password = getpass.getpass(
+            'Please enter password for new superuser:\n' +
+            self.style.SUCCESS('>>> ')
+        )
+        password2 = getpass.getpass(
+            'Please confirm password for new superuser:\n' + self.style.SUCCESS('>>> '))
+        while not compare_digest(password, password2):
+            password = getpass.getpass(
+                'Passwords do not match. Please enter password for new superuser:\n' +
+                self.style.SUCCESS('>>> ')
+            )
+            password2 = getpass.getpass(
+                'Please confirm password for new superuser:\n' +
+                self.style.SUCCESS('>>> ')
+            )
+        return password
 
     def handle(self, *args, **kwargs):
         """
@@ -107,47 +129,25 @@ class Command(BaseCommand):
         """
         try:
             # Step 0: Systemcheck
-            CheckCommand().run_from_argv(
-                argv=["manage.py", "check"])
-
-            p = self.ensure_superuser()
-            self.ensure_workspace()
-            self.ensure_ipaddress()
-            self.ensure_bookmarksprofile()
-            self.ensure_localhost()
-            self.ensure_appmodel()
+            CheckCommand().run_from_argv(argv=["manage.py", "check"])
+            CreateSuperuserCommand().run_from_argv(argv=["manage.py", "createsuperuser"])
+            self.populate_workspace_table()
+            self.populate_ipaddress_table()
+            self.populate_bookmarksprofile_table()
+            self.populate_host_table()
+            self.populate_apps_table()
             populate_endpoints()
-            self.ensure_bookmark_fixtures()
-
-            self.ensure_system_keypair(p)
-
+            self.load_bookmark_fixtures()
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"An error occurred: {e}"))
 
-    def ensure_superuser(self):
+
+    def load_bookmark_fixtures(self):
         """
-        Ensure that at least one superuser exists in the system. If not, create one.
+        Load bookmark fixtures from a predefined JSON file and update/create bookmarks
+        in the database. If the fixture file is missing, skips the operation and
+        provides a notice.
         """
-        password = None
-        superuser_exists = User.objects.filter(is_superuser=True).exists()
-
-        if not superuser_exists:
-            self.stdout.write(self.style.WARNING("No superuser found. Creating a new one now..."))
-            username = input('Please enter username for new superuser: ')
-            email = input('Please enter email for new superuser: ')
-            password = getpass.getpass('Please enter password for new superuser: ')
-            try:
-                AHSUserManager().create_superuser(username=username, email=email, password=password)
-            except Exception as e:
-                raise CommandError('Superuser creation FAILED') from e
-            else:
-                self.stdout.write(self.style.SUCCESS("Superuser created successfully."))
-        else:
-            self.stdout.write(self.style.SUCCESS("Superuser found. Skipping creation."))
-        return password
-
-    def ensure_bookmark_fixtures(self):
-
         PATH = "backend/apps/bookmarks/fixtures/bookmarks.json"
         path_exists = os.path.exists(PATH)
         if path_exists:
@@ -156,7 +156,19 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.NOTICE("Bookmarks fixture not found. Skipping creation."))
 
-    def ensure_appmodel(self):
+    def populate_apps_table(self):
+        """
+        Populates the apps table in the database with relevant records based on content types
+        defined in the system. If the apps table already has existing records, no changes
+        are made. Otherwise, it iterates over all content types, creating entries for
+        each corresponding model.
+
+        Checks if the apps table is already populated before attempting to create or
+        update records. For each ContentType, retrieves its model class and evaluates its
+        details, including the application label, model name, primary key field, and the
+        first object's primary key value. These details are used to either create or update
+        entries in the apps table.
+        """
         exists = App.objects.exists()
 
         if not exists:
@@ -197,7 +209,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS("Appmodel found. Skipping creation."))
 
-    def ensure_bookmarksprofile(self):
+    def populate_bookmarksprofile_table(self):
         """
         Ensures that a `BookmarksProfile` object exists for the superuser.
 
@@ -217,24 +229,11 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS("Superuser found. Skipping creation."))
 
-    def ensure_workspace(self):
+    def populate_workspace_table(self):
         """
         Ensures the presence of a default workspace for the system. If no default workspace
         exists, this function creates one with predefined parameters. Otherwise, it confirms
         the existence of the workspace and skips creation.
-
-        Methods
-        -------
-        ensure_workspace()
-            Checks for the existence of a default workspace belonging to the owner with ID 1.
-            Creates a new default workspace if none exists, or confirms the presence of an
-            existing workspace.
-
-        Raises
-        ------
-        Exception
-            If database operations fail during the creation or verification steps, an exception
-            is raised depending on the supporting database backend or its integrity constraints.
         """
         exists = Workspace.objects.filter(owner_id__exact=1, default__exact=True).exists()
 
@@ -244,7 +243,15 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS("Workspace found. Skipping creation."))
 
-    def ensure_ipaddress(self):
+    def populate_ipaddress_table(self):
+        """
+        Populates the IPAddress table with the localhost IP address (127.0.0.1) if it does not exist.
+
+        This method checks the database table for the existence of a localhost IP address.
+        If no entry is found, it will log a warning message and create the localhost IP
+        address in the table. If an entry exists, it logs a success message and skips
+        the creation process.
+        """
         exists = IPAddress.objects.filter(address__exact="127.0.0.1").exists()
 
         if not exists:
@@ -254,8 +261,12 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS("IPAddress found. Skipping creation."))
 
-    def ensure_localhost(self):
-
+    def populate_host_table(self):
+        """
+        Populates the core_host table with localhost information if no localhost entry
+        exists. It creates a new entry for localhost, assigns internal and external IP
+        addresses, and ensures proper saving of the entry.
+        """
         exists = Host.objects.filter(is_localhost=True).exists()
         now = timezone.now()
         external_ip = requests.get('https://icanhazip.com').text[:-1]
@@ -283,12 +294,50 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Localhost found. Skipping creation."))
 
 
-    def ensure_system_keypair(self, password):
-        PrivateKeyModel = get_private_key_model()  # noqa
+    def create_system_keypair(self, password = None):
+        """
+        Creates a system keypair by deriving a private key from the root key and generating a corresponding public key.
+        If the root private key file cannot be found or accessed, an exception is raised to notify the user.
 
-        root_key = load_private_key_from_file(settings.CRYPTO_ROOT_PRIVKEY_PATH, password)
-        exists = PrivateKeyModel.objects.exists()
+        Arguments:
+        - password (Optional[str]): A password to unlock the root private key, or None if no password is required.
+
+        Raises:
+        - CommandError: If the root private key file is not found at the location specified in settings.CRYPTO_ROOT_PRIVKEY_PATH.
+        - Any exceptions that occur during loading, deriving, generating, or serialization of keys.
+
+        Summary:
+        This method first verifies whether system keypair objects exist in the database. If they don't exist, it proceeds
+        to read the root private key from the file path specified in settings.CRYPTO_ROOT_PRIVKEY_PATH. Using this root key,
+        a private key is derived, and a public key is generated from that private key. Before saving these keys into their
+        corresponding models, they are serialized to DER format for standard representation. The process is logged with
+        appropriate success and warning messages.
+
+        Process Details:
+        1. Check for existence of keypair models in the database.
+        2. Load the root private key PEM file.
+        3. Derive a system private key from the root key.
+        4. Generate a system public key from the derived private key.
+        5. Serialize the private and public keys to DER format.
+        6. Create models for the serialized private and public keys.
+        """
+        KeyPairModel = get_keypair_model()  # noqa
+
+        exists = KeyPairModel.objects.exists()
         if not exists:
+            try:
+                with open(settings.CRYPTO_ROOT_PRIVKEY_PATH, 'rb') as f:
+                    root_priv = f.read()
+            except FileNotFoundError:
+                raise CommandError(f"Root private key file not found at {settings.CRYPTO_ROOT_PRIVKEY_PATH}")
+
+            root_key = load_pem_private_key(
+                data=root_priv,
+                password=password if password is None else password.encode(),
+            )
+            PulicKeyModel = get_public_key_model()  # noqa
+            PrivateKeyModel = get_private_key_model()  # noqa
+
             self.stdout.write(self.style.WARNING("No system keypair found. Deriving new private key from root key..."))
             sys_priv = derive_subkey(root_key, 0)
             self.stdout.write(self.style.SUCCESS("Successfully derived private key from root key."))
@@ -300,9 +349,5 @@ class Command(BaseCommand):
             ser_sys_priv = serialize_private_key_to_der(sys_priv, password)
             self.stdout.write(self.style.SUCCESS("Successfully serialized keys to DER format."))
             self.stdout.write(self.style.SUCCESS("Creating private key model object..."))
-            PrivateKeyModel.objects.create(
-                private_key=ser_sys_priv,
-                public_key=ser_sys_pub,
-                user=None,
-            )
+
             self.stdout.write(self.style.SUCCESS("Successfully created private key model object."))
