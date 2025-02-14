@@ -1,6 +1,7 @@
 import os
 import logging
 from getpass import getpass
+from secrets import compare_digest
 
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
@@ -13,8 +14,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 from django.core.management import BaseCommand, CommandError
 from django.conf import settings as django_settings
+
 from ...utils import get_crypto_backend
-from secrets import compare_digest
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +32,9 @@ class PrivateKeyExistsError(Exception):
 
 
 class Command(BaseCommand):
-    help = "Create private key based on eliptical curve SECP521R1"
+    help = "Create private & public root key based on eliptical curve SECP521R1"
     stealth_options = ("stdin",)
-    engine = get_crypto_backend()
+    engine = None
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -72,6 +74,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        self.engine = get_crypto_backend()
+
         regenerate = options['regenerate']
         out = str(options['out'])
         encoding = options['encoding']
@@ -141,12 +145,13 @@ class Command(BaseCommand):
                 priv_key_enc = Encoding.PEM
                 pub_key_enc = Encoding.PEM
         self.stdout.write('CREATING PRIVATE ROOT KEY...')
-        private_key = ec.generate_private_key(ec.SECP521R1())
+        private_key = ec.generate_private_key(self.engine.curve_instance)
+        if isinstance(password, str):
+            password = password.encode()
         private_key_binary = private_key.private_bytes(
             encoding=priv_key_enc,
             format=PrivateFormat.PKCS8,
-            encryption_algorithm=BestAvailableEncryption(password.encode()) \
-                if password is not None else NoEncryption()
+            encryption_algorithm=BestAvailableEncryption(password) if password else NoEncryption()
         )
 
         if save_to_fs:
