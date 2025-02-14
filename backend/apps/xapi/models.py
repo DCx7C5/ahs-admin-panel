@@ -9,10 +9,11 @@ from django.db.models import (
     URLField,
     BooleanField,
     CASCADE,
-    CharField, Model,
+    CharField, Model, Index,
 )
 from django.utils.translation import gettext as _
 
+from backend.ahs_core import models
 from backend.ahs_core.mixins import (
     UpdateDateMixin,
 )
@@ -98,9 +99,9 @@ class UserProfile(Model, UpdateDateMixin):
 
     class Meta:
         app_label = 'xapi'
+        db_table = 'apps_xapi_userprofile'
         verbose_name = 'X User Profile'
         verbose_name_plural = 'X User Profiles'
-        unique_together = (('id', 'username'),)
         ordering = (
             'id',
             'username',
@@ -119,6 +120,11 @@ class UserProfile(Model, UpdateDateMixin):
             'posts',
             # 'withheld',
         )
+
+        indexes = [
+            Index(fields=['username']),
+
+        ]
 
 
 class Post(Model, UpdateDateMixin):
@@ -142,6 +148,7 @@ class Post(Model, UpdateDateMixin):
 
     class Meta:
         app_label = 'xapi'
+        db_table = 'apps_xapi_post'
         verbose_name = 'Post / Tweet'
         verbose_name_plural = 'Posts / Tweets'
 
