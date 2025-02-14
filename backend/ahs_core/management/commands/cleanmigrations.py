@@ -6,55 +6,18 @@ from django.core.management import BaseCommand, CommandError
 from django.core.management.commands.makemigrations import Command as MakeMigrationsCommand
 from django.core.management.commands.migrate import Command as MigrateCommand
 
-from config.settings import BASE_DIR, DEBUG
+from config.settings import BASE_DIR
 from .populate import Command as PopulateCommand
-import docker
+from ...utils import Docker
 
 logger = logging.getLogger(__name__)
-logging.getLogger('docker.utils.config').setLevel(logging.INFO)
-
-docker_client = docker.from_env()
-
-
-def start_service_from_compose():
-    try:
-        # Initialize the Docker client
-        client = docker.from_env()
-        compose_project = "ahs-admin-panel"
-        compose_file = BASE_DIR / f"docker-compose{'-dev' if DEBUG else ''}.yaml"
-
-
-        # Run the docker-compose up command (using a subprocess call to docker-compose)
-        # Docker-py does not directly support Docker Compose deployments out of the box.
-        import subprocess
-        subprocess.run(["docker", "compose", "-f", f"{compose_file}", "-p", f"{compose_project}", "up", "-d"], check=True)
-
-        print(f"Docker Compose services started successfully for project: {compose_project}.")
-    except FileNotFoundError as e:
-        print(f"Error: {e}")
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to start services from compose file. Error: {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
-
-def stop_database_container():
-    container = docker_client.containers.get('ahs_postgres')
-    container.stop()
-    container.remove()
-
-
-def delete_docker_database_volume():
-    stop_database_container()
-    vol = docker_client.volumes.get('ahs-admin-panel_postgres-data')
-    vol.remove()
+logging.getLogger('urllib3.connectionpool').setLevel(logging.INFO)
 
 
 def clean_migrations_dirs():
     """
     Find all `migrations` directories under the given base path and delete all files
     in them except for `__init__.py`.
-
     """
     for root, dirs, files in os.walk(BASE_DIR / 'backend'):
         # Filter for `migrations` directories
@@ -67,8 +30,6 @@ def clean_migrations_dirs():
                 # Keep `__init__.py`, delete everything else
                 if file_name != '__init__.py' and os.path.isfile(file_path):
                     os.remove(file_path)
-                    print(f"Deleted: {file_path}")
-
 
 
 class Command(BaseCommand):
@@ -99,19 +60,20 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             if options['purge']:
-                self.stdout.write(self.style.SUCCESS('Deleting docker database volume...'))
-                delete_docker_database_volume()
+                Docker.get_client(context=self)
+                self.stdout.write('Deleting docker database volume...')
+                Docker.stop_container("ahs_postgres")
+                Docker.remove_container("ahs_postgres", with_vols=True)
                 self.stdout.write(self.style.SUCCESS('Deleting docker database volume... Done'))
-                self.stdout.write(self.style.SUCCESS('Restarting docker services...'))
-                start_service_from_compose()
+                self.stdout.write('Restarting docker services...')
+                Docker.start_compose_service()
                 self.stdout.write(self.style.SUCCESS('Restarting docker services... Done'))
-            else:
-                self.stdout.write(self.style.SUCCESS('Cleaning migration directory contents...'))
-                clean_migrations_dirs()
-                self.stdout.write(self.style.SUCCESS('Cleaning migration directory contents... Done'))
+            self.stdout.write('Cleaning migration directory contents...')
+            clean_migrations_dirs()
+            self.stdout.write(self.style.SUCCESS('Cleaning migration directory contents... Done'))
             if options['migrate']:
-                sleep(10)
-                self.stdout.write(self.style.SUCCESS('Migrating database...'))
+                sleep(3)
+                self.stdout.write('Migrating database...')
                 MakeMigrationsCommand().run_from_argv(['manage.py', 'makemigrations'])
                 self.stdout.write(self.style.SUCCESS('Making migrations... Done'))
                 MigrateCommand().run_from_argv(['manage.py', 'migrate'])
@@ -122,5 +84,4 @@ class Command(BaseCommand):
         except CommandError as e:
             self.stdout.write(self.style.ERROR(f"Error: {e}"))
         finally:
-            docker_client.close()
-
+            Docker.close_client()
