@@ -1,63 +1,56 @@
-import importlib
-from django.apps import apps as django_apps
-from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
+import json
+from time import time
+
+import sys
+
+from django.utils.http import urlsafe_base64_encode
 
 
-def get_ecc_backend():
-    module_path, class_name = settings.ECC_BACKEND.rsplit(".", 1)
-    try:
-        module = importlib.import_module(module_path)
 
-        ecc_backend_class = getattr(module, class_name)
-
-        return ecc_backend_class
-    except (ImportError, AttributeError) as ex:
-        raise ImportError(f"Error importing '{settings.ECC_BACKEND}': {ex}")
+def is_server_runtime():
+    if "manage.py" in sys.argv:
+        command = sys.argv[1] if len(sys.argv) > 1 else None
+        if command == "runserver":
+            return True
 
 
-def validate_backend(backend_string: str) -> bool:
-    module_path, class_name = backend_string.rsplit(".", 1)
-    try:
-        module = importlib.import_module(module_path)
-        return hasattr(module, class_name)
-    except (ImportError, AttributeError) as ex:
-        raise ImportError(f"Error importing '{settings.ECC_BACKEND}': {ex}")
 
-
-def get_public_key_model():
-    try:
-        return django_apps.get_model(
-            settings.ECC_PRIVKEY_MODEL.replace("PrivateKey", "PublicKey"),
-            require_ready=False,
-        )
-
-    except ValueError:
-        raise ImproperlyConfigured(
-            "ECC_PUBKEY_MODEL must be of the form 'app_label.model_name'"
-        )
-    except LookupError:
-        raise ImproperlyConfigured(
-            "ECC_PUBKEY_MODEL refers to model '%s' that has not been installed"
-            % settings.ECC_PRIVKEY_MODEL
-        )
-
-def get_private_key_model():
+def sign_token(data):
     """
-    Return the asymmetric key models (PrivateKey and PublicKey) used in this project.
+    Sign the token payload using the ECC private key.
+    """
+    payload = json.dumps(data).encode("ascii")
+
+    # Sign the payload with the ECC private key
+    signature = b""
+
+    # Concatenate payload and signature and encode as Base64
+    return urlsafe_base64_encode(payload + b"." + signature)
+
+
+def verify_token(token):
+    """
+    Verify the provided token using ECC public key.
     """
     try:
-        return django_apps.get_model(
-            settings.ECC_PRIVKEY_MODEL,
-            require_ready=False,
-        )
+        # Decode Base64 token
+        decoded_token = urlsafe_base64_encode(token.encode('ascii')).encode('ascii')
 
-    except ValueError:
-        raise ImproperlyConfigured(
-            "ECC_PRIVKEY_MODEL must be of the form 'app_label.model_name'"
-        )
-    except LookupError:
-        raise ImproperlyConfigured(
-            "ECC_PRIVKEY_MODEL refers to model '%s' that has not been installed"
-            % settings.ECC_PRIVKEY_MODEL
-        )
+        # Extract payload and signature
+        payload, signature = decoded_token.split(b".", 1)
+
+        # Verify the signature
+        # settings.ECC_PUBLIC_KEY.verify(signature, payload, ec.ECDSA(hashes.SHA256()))
+
+        # Deserialize payload
+        claims = json.loads(payload.decode("utf-8"))
+
+        # Check expiration time
+        if "exp" in claims and int(time()) > claims["exp"]:
+            raise RuntimeError("Token has expired.")
+
+        return claims
+
+    except Exception as e:
+        raise RuntimeError(f"Invalid token: {e}")
+

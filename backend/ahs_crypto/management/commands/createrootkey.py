@@ -5,7 +5,6 @@ from secrets import compare_digest
 
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
-    PublicFormat,
     PrivateFormat,
     NoEncryption,
     BestAvailableEncryption,
@@ -14,8 +13,6 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 from django.core.management import BaseCommand, CommandError
 from django.conf import settings as django_settings
-
-from ...utils import get_crypto_backend
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +29,7 @@ class PrivateKeyExistsError(Exception):
 
 
 class Command(BaseCommand):
-    help = "Create private & public root key based on eliptical curve SECP521R1"
+    help = "Create private root key based on eliptical curve SECP521R1"
     stealth_options = ("stdin",)
     engine = None
 
@@ -53,13 +50,6 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
-            "--encoding",
-            action='store',
-            default=None,
-            help="Choose encoding for ROOT keypair.",
-        )
-
-        parser.add_argument(
             "--out",
             action='store',
             default=django_settings.BASE_DIR,
@@ -74,25 +64,17 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        self.engine = get_crypto_backend()
 
         regenerate = options['regenerate']
         out = str(options['out'])
-        encoding = options['encoding']
         password = options['password']
-        priv_key_enc = pub_key_enc = "pem"
         save_to_fs = True
 
         # Check for file output
         if os.path.isfile(out):
             priv_out_filename = out
-            if "private" in priv_out_filename:
-                pub_out_filename = priv_out_filename.replace('private', 'public')
-            else:
-                pub_out_filename = priv_out_filename + '.pub'
         else:
             priv_out_filename = out + '/root.private.key'
-            pub_out_filename = out + '/root.public.key'
 
         if not regenerate and os.path.exists(priv_out_filename):
             self.stdout.write(self.style.ERROR('Private key already exists. Delete old key or use --regenerate param'))
@@ -104,18 +86,7 @@ class Command(BaseCommand):
                          'Answering no prints keys to terminal screen [Y/n]:\n' +
                          self.style.SUCCESS(f'>>> '))
             save_to_fs = save.lower() in ('y', 'yes', '')
-            if save_to_fs and not encoding:
-                priv_encoding = input('Encoding for PRIVATE ROOT key file?\n'
-                                 'Choices:\n'
-                                 '\t 1 - PEM (default)\n'
-                                 '\t 2 - DER\n' +
-                                 self.style.SUCCESS('>>> '))
-                pub_encoding = input('Encoding for PUBLIC ROOT key file?\n'
-                                 'Choices:\n'
-                                 '\t 1 - PEM (default)\n'
-                                 '\t 2 - DER\n'
-                                 '\t 3 - X962\n' +
-                                 self.style.SUCCESS('>>> '))
+            if save_to_fs:
                 if options['password'] is None:
                     password = getpass('Choose password for private key:\n' + self.style.SUCCESS('>>> '))
                     password2 = getpass('Confirm password:\n' + self.style.SUCCESS('>>> '))
@@ -123,33 +94,13 @@ class Command(BaseCommand):
                     while not compare_digest(password.encode(), password2.encode()):
                         password = getpass('Passwords do not match. Try again:\n' + self.style.SUCCESS('>>> '))
                         password2 = getpass('Confirm password:\n' + self.style.SUCCESS('>>> '))
-                if encoding is None:
-                    if priv_encoding == '' or (priv_encoding.lower() in ("1", "pem")):
-                        priv_key_enc = Encoding.PEM
-                    elif priv_encoding.lower() == ("2" or "der"):
-                        priv_key_enc = Encoding.DER
-                    else:
-                        raise CommandError('Invalid encoding.')
 
-                    if pub_encoding == '' or (pub_encoding.lower() in ("1", "pem")):
-                        pub_key_enc = Encoding.PEM
-                    elif pub_encoding.lower() in ("2", "der"):
-                        pub_key_enc = Encoding.DER
-                    elif pub_encoding.lower() in ("3", "x962"):
-                        pub_key_enc = Encoding.X962
-                    else:
-                        raise CommandError('Invalid encoding.')
-                else:
-                    priv_key_enc = pub_key_enc = Encoding.PEM
-            else:
-                priv_key_enc = Encoding.PEM
-                pub_key_enc = Encoding.PEM
         self.stdout.write('CREATING PRIVATE ROOT KEY...')
-        private_key = ec.generate_private_key(self.engine.curve_instance)
+        private_key = ec.generate_private_key(ec.SECP521R1())
         if isinstance(password, str):
             password = password.encode()
         private_key_binary = private_key.private_bytes(
-            encoding=priv_key_enc,
+            encoding=Encoding.PEM,
             format=PrivateFormat.PKCS8,
             encryption_algorithm=BestAvailableEncryption(password) if password else NoEncryption()
         )
@@ -162,23 +113,3 @@ class Command(BaseCommand):
             self.stdout.write(private_key_binary.decode())
 
         self.stdout.write(self.style.SUCCESS('PRIVATE ROOT KEY CREATED.'))
-
-        self.stdout.write('CREATING PUBLIC ROOT KEY...')
-
-        pub_format = PublicFormat.SubjectPublicKeyInfo \
-            if pub_key_enc in [Encoding.PEM, Encoding.DER] \
-            else PublicFormat.CompressedPoint
-
-        public_key = private_key.public_key()
-        public_key_binary = public_key.public_bytes(
-            encoding=pub_key_enc,
-            format=pub_format
-        )
-        if save_to_fs:
-            self.stdout.write('SAVING PRIVATE ROOT KEY TO FILE...')
-            with open(pub_out_filename, 'wb') as f:
-                f.write(public_key_binary)
-        else:
-            self.stdout.write(public_key_binary.decode())
-
-        self.stdout.write(self.style.SUCCESS('PUBLIC ROOT KEY CREATED'))
