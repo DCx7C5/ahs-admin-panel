@@ -1,20 +1,15 @@
 import os
 from pathlib import Path
+from socket import gethostbyname_ex, gethostname
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.environ.get('DEBUG'))
-
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 MEDIA_ROOT = BASE_DIR / 'media'
 
 MEDIA_URL = '/media/'
-
+DEBUG = True
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:8000',
     'http://localhost:3000',  # The default port for create-react-app
@@ -153,6 +148,10 @@ GRAPHENE = {
     'SCHEMA': 'ahs_core.schema.schema'
 }
 
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
+
 # security related stuff
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
@@ -161,3 +160,7 @@ SESSION_COOKIE_HTTPONLY = True
 CORS_ORIGIN_ALLOW_ALL = True
 SECURE_CONTENT_TYPE_NOSNIFF = False
 
+hostname, _, ips = gethostbyname_ex(gethostname())
+ipl = [ip[: ip.rfind(".")] + ".1" for ip in ips]
+INTERNAL_IPS += ipl
+ALLOWED_HOSTS += [hostname, '0.0.0.0', 'localhost'] + ipl

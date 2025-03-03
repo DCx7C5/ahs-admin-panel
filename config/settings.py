@@ -1,7 +1,9 @@
+import os
 from datetime import timedelta
 from os import environ
 from pathlib import Path
 
+from django.core.management import ManagementUtility
 from dotenv import load_dotenv
 
 
@@ -13,7 +15,7 @@ SECRET_KEY = environ.get('SECRET_KEY')
 
 INSTALLED_APPS = [
     # ASGI Server
-    'hypercorn',
+    'backend.ahs_crypto',
     'daphne',
 
     'django.contrib.admin',
@@ -45,7 +47,6 @@ INSTALLED_APPS = [
     'graphene_django',
 
     # Core Apps
-    'backend.ahs_crypto',
     'backend.ahs_accounts',
     'backend.ahs_api',
 
@@ -73,7 +74,6 @@ INSTALLED_APPS = [
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(environ.get('DEBUG'))
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 SITE_NAME = 'AHSAdminPanel'
 
@@ -165,10 +165,6 @@ LOGOUT_URL = 'logout'
 
 AUTH_USER_MODEL = "ahs_accounts.AHSUser"
 
-INTERNAL_IPS = [
-    '127.0.0.1',
-]
-
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
@@ -178,8 +174,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 
+CSRF_USE_SESSIONS = True
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-
+SESSION_COOKIE_PATH = '/admin/'  # Restrict sessions to the admin panel
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -189,21 +186,36 @@ PASSWORD_HASHERS = [
 BLACKLIST_AFTER_ROTATION = True
 ALGORITHM = "ES521"
 
+
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=3),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
-    'SIGNING_KEY': None,
+    'SIGNING_KEY':  None,
     'VERIFYING_KEY': None,
 
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'Authorization',
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
-
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    'TOKEN_OBTAIN_SERIALIZER': 'backend.ahs_api.serializers.AHSTokenObtainPairSerializer',
+    'AUTH_TOKEN_CLASSES': ("rest_framework_simplejwt.tokens.AccessToken",),
     'TOKEN_TYPE_CLAIM': 'token_type',
     'ALGORITHM': 'ES521',
-
 }
+
+# load project ahs_settings from .env file
+PROJECT_NAME = os.getenv('PROJECT_NAME', 'ahs-admin-panel')
+ENVIRONMENT = os.getenv('AHS_ENV', 'development')
+
+# choose between 'daphne', 'hypercorn', 'django'
+HTTP_SERVER = os.getenv('AHS_SERVER', 'hypercorn')
+
+# choose between 'trio' and 'asyncio'
+HTTP_EVENT_LOOP = os.getenv('EVENT_LOOP', 'trio')
+WS_EVENT_LOOP = os.getenv('WS_EVENT_LOOP', 'trio')
+
+
+if DEBUG:
+    from .development import *
