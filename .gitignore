@@ -377,3 +377,4 @@ bookmarks.json
 root.private.key
 root.public.key
 .runserverahs_session
+.ahs_session
