@@ -36,9 +36,10 @@
 <body class="">
 {% block body %}
     <div id="root-wrapper">
-        {% navbar id='navheader' fixed=True %}
         <div id="root">
-            {% block page_content_wrapper %}{% endblock %}
+            {% block page_content_wrapper %}
+                {% render_bundle 'index' 'js' %}
+            {% endblock %}
         </div>
     </div>
 {% endblock body %}
