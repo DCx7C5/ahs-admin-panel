@@ -3,25 +3,17 @@ import os.path
 import logging
 import requests
 
-from django.conf import settings
 from django.urls import get_resolver
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import get_user_model
 from django.contrib.auth.management.commands.createsuperuser import Command as CreateSuperuserCommand
 from django.core.management.commands.check import Command as CheckCommand
 from django.core.management.commands.loaddata import Command as LoadDataCommand
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 from backend.ahs_core.models.apps import App
-from backend.ahs_crypto.ecc import (
-    derive_subkey,
-    generate_public_key,
-    serialize_public_key_to_der,
-    serialize_private_key_to_der,
-)
-from backend.ahs_crypto.utils import get_private_key_model, get_public_key_model
+
 from backend.ahs_endpoints.models import EndPoint
 from backend.apps.network.models.hosts import Host
 
@@ -292,62 +284,3 @@ class Command(BaseCommand):
 
         else:
             self.stdout.write(self.style.SUCCESS("Localhost found. Skipping creation."))
-
-
-    def create_system_keypair(self, password = None):
-        """
-        Creates a system keypair by deriving a private key from the root key and generating a corresponding public key.
-        If the root private key file cannot be found or accessed, an exception is raised to notify the user.
-
-        Arguments:
-        - password (Optional[str]): A password to unlock the root private key, or None if no password is required.
-
-        Raises:
-        - CommandError: If the root private key file is not found at the location specified in settings.CRYPTO_ROOT_PRIVKEY_PATH.
-        - Any exceptions that occur during loading, deriving, generating, or serialization of keys.
-
-        Summary:
-        This method first verifies whether system keypair objects exist in the database. If they don't exist, it proceeds
-        to read the root private key from the file path specified in settings.CRYPTO_ROOT_PRIVKEY_PATH. Using this root key,
-        a private key is derived, and a public key is generated from that private key. Before saving these keys into their
-        corresponding models, they are serialized to DER format for standard representation. The process is logged with
-        appropriate success and warning messages.
-
-        Process Details:
-        1. Check for existence of keypair models in the database.
-        2. Load the root private key PEM file.
-        3. Derive a system private key from the root key.
-        4. Generate a system public key from the derived private key.
-        5. Serialize the private and public keys to DER format.
-        6. Create models for the serialized private and public keys.
-        """
-        KeyPairModel = get_keypair_model()  # noqa
-
-        exists = KeyPairModel.objects.exists()
-        if not exists:
-            try:
-                with open(settings.CRYPTO_ROOT_PRIVKEY_PATH, 'rb') as f:
-                    root_priv = f.read()
-            except FileNotFoundError:
-                raise CommandError(f"Root private key file not found at {settings.CRYPTO_ROOT_PRIVKEY_PATH}")
-
-            root_key = load_pem_private_key(
-                data=root_priv,
-                password=password if password is None else password.encode(),
-            )
-            PulicKeyModel = get_public_key_model()  # noqa
-            PrivateKeyModel = get_private_key_model()  # noqa
-
-            self.stdout.write(self.style.WARNING("No system keypair found. Deriving new private key from root key..."))
-            sys_priv = derive_subkey(root_key, 0)
-            self.stdout.write(self.style.SUCCESS("Successfully derived private key from root key."))
-            self.stdout.write(self.style.SUCCESS("Generating public key from derived private key..."))
-            sys_pub = generate_public_key(sys_priv)
-            self.stdout.write(self.style.SUCCESS("Successfully generated public key from derived private key."))
-            self.stdout.write(self.style.SUCCESS("Serializing keys to DER format..."))
-            ser_sys_pub = serialize_public_key_to_der(sys_pub)
-            ser_sys_priv = serialize_private_key_to_der(sys_priv, password)
-            self.stdout.write(self.style.SUCCESS("Successfully serialized keys to DER format."))
-            self.stdout.write(self.style.SUCCESS("Creating private key model object..."))
-
-            self.stdout.write(self.style.SUCCESS("Successfully created private key model object."))
