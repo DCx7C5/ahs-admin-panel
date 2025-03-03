@@ -1,5 +1,5 @@
 import React, {useRef} from 'react';
-import useMoveElement from "../../hooks/useMoveElement";
+import useMoveElement from "../hooks/useMoveElement";
 
 
 export const Widget = () => {
