@@ -27,22 +27,14 @@
     {% block stylesheets %}{% endblock %}
   {% endblock %}
   {% block javascript_head %}{% endblock %}
-  {{ AHS_USER|json_script:"user-data" }}
-  {{ PAGES|json_script:"menu-data" }}
   {% block extra_head %}{% endblock extra_head %}
 
 </head>
 {% block full_body %}
 <body class="">
-{% block body %}
-    <div id="root-wrapper">
-        <div id="root">
-            {% block page_content_wrapper %}
-                {% render_bundle 'index' 'js' %}
-            {% endblock %}
-        </div>
+    <div id="root">
+        {% render_bundle 'index' 'js' %}
     </div>
-{% endblock body %}
 {# -- scripts and other body elements here -- #}
 {% block javascript_bottom %}
 {% block js %}{% endblock %}
