@@ -101,7 +101,7 @@ def get_all_core_apps():
     function `get_all_apps()` and returns only those whose names
     start with 'ahs' and do not end with 'models'.
     """
-    return [x for x in get_all_apps() if x.startswith('ahs') and not x.endswith('models')]
+    return [x.split('.')[-1] for x in get_all_apps() if x.startswith('ahs') and not x.endswith('models')]
 
 def get_all_plugin_apps():
     """
