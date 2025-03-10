@@ -1,11 +1,15 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.models import LogEntry
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, Permission
 from django.contrib.sessions.models import Session
 
+from backend.ahs_core.forms import SignUpForm
 from backend.ahs_core.models.apps import App
 
+User = get_user_model()
 
 @admin.register(App)
 class AppModelAdmin(ModelAdmin):
@@ -30,6 +34,18 @@ class AdminLogAdmin(ModelAdmin):
 class PermissionAdmin(ModelAdmin):
     list_display = ('id', 'name', 'content_type', 'codename')
     ordering = ('id',)
+
+
+@admin.register(User)
+class AHSUserAdmin(UserAdmin):
+    add_form = SignUpForm
+    model = User
+
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        (None, {'fields': ('image',)}),
+    )
+    show_full_result_count = True
+
 
 
 admin.site.unregister(Group)

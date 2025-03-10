@@ -1,9 +1,10 @@
 import logging
 import uuid
 
-from django.db.models import Model, ImageField
+from django.contrib.auth.base_user import BaseUserManager
+from django.db.models import ImageField
 from django.db.models.constraints import UniqueConstraint
-from django.db.models.fields import UUIDField, DateTimeField, CharField
+from django.db.models.fields import UUIDField, DateTimeField, CharField, URLField
 from django.db.models.indexes import Index
 
 
@@ -11,15 +12,22 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.contrib.auth.models import AbstractUser, Permission
 
-from backend.ahs_accounts.validators import AHSUsernameValidator
+from backend.ahs_core.validators import AHSUsernameValidator
 
 logger = logging.getLogger(__name__)
+
+
+
+class AHSUserManager(BaseUserManager):
+    async def create_user(self):
+        pass
 
 
 class AHSUser(AbstractUser):
     """
     Custom user model with additional fields and functionality.
     """
+    password = None
     username_validator = AHSUsernameValidator()
 
     username = CharField(
@@ -50,6 +58,16 @@ class AHSUser(AbstractUser):
         verbose_name=_('Last Modified'),
         auto_now=True,
     )
+    socket_url = URLField(
+        verbose_name=_('Socket URL'),
+    )
+    public_key = CharField(
+        verbose_name=_('Public Key'),
+        blank=False,
+        null=False,
+    )
+
+    objects = AHSUserManager()
 
     @property
     def permissions(self):
@@ -90,7 +108,7 @@ class AHSUser(AbstractUser):
 
 
     class Meta:
-        app_label = "ahs_accounts"
+        app_label = "ahs_core"
         verbose_name = _("AHS User")
         verbose_name_plural = _("AHS Users")
         db_table = "auth_accounts_ahsuser"

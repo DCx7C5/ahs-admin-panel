@@ -79,7 +79,7 @@ def get_all_apps():
     Recursively find all directories containing a file named 'apps.py' starting from a specified path.
     :return: A list of directory paths containing 'apps.py'.
     """
-    directories_with_apps_py = ["ahs_accounts"]
+    directories_with_apps_py = []
     for root, dirs, files in os.walk(BASE_DIR / 'backend' ):
         if "apps.py" in files:  # Check if 'apps.py' exists in the current folder
             directories_with_apps_py.append(root.split('backend/')[-1].replace('/', '.'))
