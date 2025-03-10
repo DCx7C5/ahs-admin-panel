@@ -1,0 +1,60 @@
+body {
+  overflow: hidden;
+}
+#login-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 20px;
+}
+
+form {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  color: black;
+}
+
+h1 {
+  color: #333;
+  font-size: 1.75rem;
+  margin-bottom: 20px;
+}
+
+.form-floating label {
+  color: #6c757d;
+}
+
+.form-control {
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  padding: 10px;
+  font-size: 1rem;
+}
+
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+button {
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 1rem;
+  transition: background 0.3s ease;
+}
+
+button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.alert {
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
