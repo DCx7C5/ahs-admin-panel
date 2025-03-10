@@ -2,7 +2,7 @@ import React, {lazy, Suspense} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
 import Layout from "./components/Layout/Layout";
 import AuthProtectedRoutes from "./components/AuthProtectedRoutes";
-import AuthProvider from "./components/AuthProvider";
+import DataProvider from "./components/DataProvider";
 
 
 const DashBoard = lazy(() => import("./pages/Dashboard")
@@ -16,6 +16,12 @@ const Login = lazy(() => import("./pages/Login")
         default: module.Login,
     }))
 );
+
+const SignUp = lazy(() => import("./pages/Signup")
+    .then(module => ({
+        default: module.Signup,
+    }))
+)
 
 const Test = lazy(() => import("./pages/Test")
     .then(module => ({
@@ -31,24 +37,27 @@ const Settings = lazy(() => import("./pages/Settings")
 
 
 export const Root = () => {
+
+
   return (
-    <AuthProvider>
-      <Suspense>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route path="login" element={<Login />} />
-              <Route element={<AuthProtectedRoutes />}>
-                <Route index element={<DashBoard />} />
-                <Route path="dashboard" element={<DashBoard />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="logout" element={<Test />} />
+    <DataProvider>
+        <Suspense>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route path="accounts/login/" element={<Login />} />
+                <Route path="accounts/signup/" element={<SignUp />} />
+                <Route element={<AuthProtectedRoutes />}>
+                  <Route index element={<DashBoard />} />
+                  <Route path="dashboard/" element={<DashBoard />} />
+                  <Route path="settings/" element={<Settings />} />
+                  <Route path="logout/" element={<Test />} />
+                </Route>
               </Route>
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </Suspense>
-    </AuthProvider>
+            </Routes>
+          </BrowserRouter>
+        </Suspense>
+    </DataProvider>
   );
 };
 
