@@ -15,10 +15,10 @@ from django.core.management.commands.loaddata import Command as LoadDataCommand
 from backend.ahs_core.models.apps import App
 
 from backend.ahs_endpoints.models import EndPoint
-from backend.apps.network.models.hosts import Host
+from backend.ahs_network.hosts.models import Host
+from backend.ahs_network.ipaddresses.models import IPAddress
 
 from backend.apps.bookmarks.models import BookmarksProfile
-from backend.apps.network.models.ipaddresses import IPAddress
 from backend.apps.workspaces.models import Workspace
 from secrets import compare_digest
 
