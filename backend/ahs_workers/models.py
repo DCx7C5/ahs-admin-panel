@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from backend.apps.network.models.hosts import Host
+from backend.ahs_network.hosts.models import Host
 
 
 class ActiveWorkerException(Exception):

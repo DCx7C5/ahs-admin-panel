@@ -5,7 +5,7 @@ from django.db.models import Model, ForeignKey
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
-from backend.apps.network.models.hosts import Host
+from backend.ahs_network.hosts.models import Host
 from backend.ahs_workers.models import Worker
 
 logger = logging.getLogger(__name__)

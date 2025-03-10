@@ -23,7 +23,7 @@ class DockerVolume(models.Model):
 
 
 class DockerNetwork(models.Model):
-    # Basic network information
+    # Basic ahs_network information
     name = models.CharField(max_length=256)
     network_id = models.CharField(max_length=256, primary_key=True)
     created = models.DateTimeField()
@@ -40,9 +40,9 @@ class DockerNetwork(models.Model):
     ipam_options = JSONField(blank=True, null=True)  # Options related to IPAM
     ipam_config = JSONField(blank=True, null=True)  # List of Subnet/Gateway configurations
 
-    # Configurations related to the network
+    # Configurations related to the ahs_network
     config_from = JSONField(blank=True, null=True)  # e.g., {"Network": ""}
-    containers = JSONField(blank=True, null=True)  # Details of containers in the network
+    containers = JSONField(blank=True, null=True)  # Details of containers in the ahs_network
     options = JSONField(blank=True, null=True)  # Additional options for the driver
     labels = JSONField(blank=True, null=True)  # Metadata such as Compose labels
 
@@ -64,11 +64,11 @@ class DockerContainer(models.Model):
     state = models.CharField(max_length=64)  # e.g., "running", "exited"
     status = models.CharField(max_length=256)  # e.g., "Up 3 hours"
 
-    # Ports and network configurations
+    # Ports and ahs_network configurations
     ports = JSONField()  # List of port mappings
     labels = JSONField(blank=True, null=True)  # Store container labels as JSON
     network_mode = models.CharField(max_length=256, blank=True, null=True)
-    networks = JSONField(blank=True, null=True)  # Store network ahs_settings as JSON
+    networks = JSONField(blank=True, null=True)  # Store ahs_network ahs_settings as JSON
 
     # Mounts (volumes and binds)
     mounts = JSONField(blank=True, null=True)  # Store mount details as JSON

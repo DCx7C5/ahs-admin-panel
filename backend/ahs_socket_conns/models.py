@@ -13,7 +13,7 @@ from django.db.models.indexes import Index
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-from backend.apps.network.models.hosts import Host
+from backend.ahs_network.hosts.models import Host
 
 User = get_user_model()
 
