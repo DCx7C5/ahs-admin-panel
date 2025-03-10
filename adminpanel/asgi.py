@@ -9,7 +9,7 @@ from backend.ahs_core.consumers.channelsmultiplexer import AsyncJsonWebsocketDem
 from backend.ahs_core.consumers.terminal_dispatcher import AsyncWebsocketTerminal
 from backend.ahs_core.consumers.command_dispatcher import AHSCommandConsumer
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.ahs_config')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 
 django_asgi_app = get_asgi_application()
