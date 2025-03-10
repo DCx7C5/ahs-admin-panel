@@ -1,22 +1,26 @@
 import os
+from _socket import gethostbyname_ex, gethostname
 from datetime import timedelta
 from os import environ
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import ManagementUtility
 from dotenv import load_dotenv
 
+from backend.ahs_core.ecc import load_private_key_from_file, derive_from_private_root_key, derive_subkey
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = environ.get('SECRET_KEY')
+ENCRYPTION_KEY = environ.get('ENCRYPTION_KEY')
 
 INSTALLED_APPS = [
     # ASGI Server
-    'backend.ahs_crypto',
     'daphne',
+    'backend.ahs_core',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -32,9 +36,6 @@ INSTALLED_APPS = [
 
     # django rest api
     'rest_framework',
-    'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
-    'drf_spectacular',
     'adrf',
 
     'corsheaders',
@@ -47,10 +48,13 @@ INSTALLED_APPS = [
     'graphene_django',
 
     # Core Apps
-    'backend.ahs_accounts',
+
     'backend.ahs_api',
 
-    'backend.ahs_core',
+    'backend.ahs_network',
+    'backend.ahs_network.domains',
+    'backend.ahs_network.hosts',
+    'backend.ahs_network.ipaddresses',
     'backend.ahs_channels',
     'backend.ahs_endpoints',
     'backend.ahs_settings',
@@ -61,7 +65,6 @@ INSTALLED_APPS = [
     # Apps / Plugins
     'backend.apps',
     'backend.apps.bookmarks',
-    'backend.apps.network',
     'backend.apps.osint',
     'backend.apps.system',
     'backend.apps.system.cpu',
@@ -74,21 +77,36 @@ INSTALLED_APPS = [
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(environ.get('DEBUG'))
 
-
 SITE_NAME = 'AHSAdminPanel'
 
-
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASS'),
+        'HOST': os.environ.get('DB_HOST', None),
+        'PORT': os.environ.get('DB_PORT', None),
+    }
+}
 
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'backend.ahs_core.middleware.AHSAdminPanelMiddleware',
+    #'django.contrib.auth.middleware.LoginRequiredMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# We don't use built-in SessionMiddleware, AuthenticationMiddleware and MessagesMiddleware,
+# which throws error on startup
+SILENCED_SYSTEM_CHECKS = [
+    'admin.E410',
+    'admin.E408',
+    'admin.E409',
 ]
 
 ROOT_URLCONF = 'adminpanel.urls'
@@ -127,15 +145,48 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# REST API and Token Auth
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',  # Enable Browsable API
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 25,
 }
 
-ROTATE_REFRESH_TOKENS = True
+WEBPACK_LOADER = {
+    'DEFAULT': {
+        'CACHE': not DEBUG,
+        'BUNDLE_DIR_NAME': 'webpack_bundles/',  # must end with slash
+        'STATS_FILE': os.path.join(BASE_DIR, 'frontend/webpack-stats.json'),
+        'POLL_INTERVAL': 0.1,
+        'TIMEOUT': None,
+        'IGNORE': [r'.+\.hot-update.js', r'.+\.map'],
+        'LOADER_CLASS': 'webpack_loader.loader.WebpackLoader',
+    }
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.environ.get('REDIS_HOST')],
+            # "password": os.environ.get('REDIS_PASS'),
+        },
+        "prefix": "ahs_channel",
+    },
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get('REDIS_HOST'),
+        "TIMEOUT": 3600,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
 
 # Internationalization
 
@@ -146,7 +197,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -163,51 +213,85 @@ LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 LOGOUT_URL = 'logout'
 
-AUTH_USER_MODEL = "ahs_accounts.AHSUser"
+AUTH_USER_MODEL = "ahs_core.AHSUser"
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "http://localhost:3000",
-]
-
-CSRF_USE_SESSIONS = True
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_PATH = '/admin/'  # Restrict sessions to the admin panel
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
 ]
-
-
-BLACKLIST_AFTER_ROTATION = True
-ALGORITHM = "ES521"
-
-
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(hours=3),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'SIGNING_KEY':  None,
-    'VERIFYING_KEY': None,
-
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'Authorization',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-    'TOKEN_OBTAIN_SERIALIZER': 'backend.ahs_api.serializers.AHSTokenObtainPairSerializer',
-    'AUTH_TOKEN_CLASSES': ("rest_framework_simplejwt.tokens.AccessToken",),
-    'TOKEN_TYPE_CLAIM': 'token_type',
-    'ALGORITHM': 'ES521',
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {name} {levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'rotating_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'adminpanel.log',
+            'maxBytes': 1024 * 1024 * 100,
+            'backupCount': 10,
+            'formatter': 'verbose',
+            'level': 'DEBUG',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'rotating_file'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'rotating_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'asyncio': {
+            'level': 'INFO',  # INFO to suppress early initialisation logs. Set to DEBUG again in cmd_parser.py.
+        },
+        'backend.ahs_core': {
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'backend.ahs_core.consumers.cmd_parser': {
+            'level': 'INFO',  # INFO to suppress early initialisation logs. Set to DEBUG again in cmd_parser.py.
+            'handlers': ['console', 'rotating_file'],
+            'propagate': False,  # Prevent logs from duplicating in `backend.ahs_core`
+        },
+    },
 }
 
-# load project ahs_settings from .env file
+# security related stuff
+ROOT_PRIVKEY_PATH = environ.get('ROOT_PRIVKEY_PATH', 'root.private.key')
+if not os.path.exists(ROOT_PRIVKEY_PATH):
+    raise ImproperlyConfigured(f"Root private key file '{ROOT_PRIVKEY_PATH}' does not exist.")
+
+SESSION_COOKIE_SECURE = False if DEBUG else True
+SESSION_COOKIE_HTTPONLY = True
+
+CSRF_COOKIE_SECURE = False if DEBUG else True
+CSRF_COOKIE_HTTPONLY = False if DEBUG else True
+SECURE_CONTENT_TYPE_NOSNIFF = False if DEBUG else True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = True if DEBUG else False
+CORS_ALLOWED_ORIGINS = ["http://localhost:8000", "http://localhost:3000",]
+CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://localhost:3000',]
+GRAPHENE = {'SCHEMA': 'ahs_core.schema.schema'}
+INTERNAL_IPS = ['127.0.0.1',]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
 PROJECT_NAME = os.getenv('PROJECT_NAME', 'ahs-admin-panel')
-ENVIRONMENT = os.getenv('AHS_ENV', 'development')
+ENVIRONMENT = os.getenv('AHS_ENV', 'development' if DEBUG else 'production')
 
 # choose between 'daphne', 'hypercorn', 'django'
 HTTP_SERVER = os.getenv('AHS_SERVER', 'hypercorn')
@@ -218,4 +302,7 @@ WS_EVENT_LOOP = os.getenv('WS_EVENT_LOOP', 'trio')
 
 
 if DEBUG:
-    from .development import *
+    hostname, _, ips = gethostbyname_ex(gethostname())
+    ipl = [ip[: ip.rfind(".")] + ".1" for ip in ips]
+    INTERNAL_IPS += ipl
+    ALLOWED_HOSTS += [hostname, '0.0.0.0', 'localhost'] + ipl
