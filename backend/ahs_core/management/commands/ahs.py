@@ -1,6 +1,5 @@
 import logging
 import os
-import shutil
 from typing import Tuple, Dict
 
 from daphne.management.commands.runserver import get_default_application
@@ -9,12 +8,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler
 from django.core.management import BaseCommand
-from docker import APIClient
+from docker import client
 from django.core.management.commands.runserver import Command as DjangoRunserverCommand
 
 from config.settings import BASE_DIR
 
-docker_client = APIClient()
+docker_client = client.from_env()
 User = get_user_model()
 
 # Make sure we have a logger
@@ -33,7 +32,8 @@ class Command(BaseCommand):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._docker_client = APIClient()
+        self._address = None
+        self._docker_client = docker_client
         self._mode = "development"
 
         self._docker: Dict[str, Dict | None] = {
@@ -44,9 +44,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            'cleanmigrations',
+            'option',
             nargs='?',
-            help='Clean all migration files in the migration directories',
         )
 
     def collect_info(self):
@@ -148,12 +147,10 @@ class Command(BaseCommand):
     def write_success(self, text, end="\n"):
         self.stdout.write(self.style.SUCCESS(text), ending=end)
 
-
-
     def handle(self, *args, **kwargs):
 
-        hostname = kwargs['hostname']
-        port = kwargs['port']
+        hostname = kwargs.get('hostname', '0.0.0.0')
+        port = kwargs.get('port', '8000')
         self._address = (hostname, port)
         self.collect_info()
         self.print_info()
