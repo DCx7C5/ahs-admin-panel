@@ -4,8 +4,6 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 
 
-
-
 class App(models.Model):
     """
     Represents an application entity within the system.
