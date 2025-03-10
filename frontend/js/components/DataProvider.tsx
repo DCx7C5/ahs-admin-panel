@@ -1,39 +1,47 @@
-import React, {createContext, useRef, ReactNode, useEffect} from "react";
+import React, {createContext, ReactNode, useState} from "react";
+import useAHSApi from "../hooks/useAHSApi";
+import useCryptography from "../hooks/useCryptography";
+import useAHSToken from "../hooks/useAHSToken";
+import useIndexedDB from "../hooks/useIndexedDB";
 
 
 export interface DataContextType {
-  user: Record<string, any>;
-  pages: any;
+    apiClient: any,
+    cryptoClient: any,
+    isAuthenticated: boolean;
+    setIsAuthenticated: (value: (((prevState: boolean) => boolean) | boolean)) => void;
+    isSuperUser: boolean;
+    setIsSuperUser: (value: ((prevState: boolean) => boolean) | boolean) => void;
 }
 
-
 export const DataContext = createContext<DataContextType | null>(null);
-
-const parseDataFromElement = (dataElementId: string): Record<string, any> => {
-  const elem = document.getElementById(dataElementId);
-  try {
-    return elem ? JSON.parse(elem.textContent || "") || {} : {};
-  } catch (e) {
-    console.error(`Error parsing JSON data for element ${dataElementId}: ${(e as Error).message}`);
-    return {};
-  }
-};
 
 
 interface DataProviderProps {
   children: ReactNode;
 }
 
-export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
 
-  const userRef = useRef(parseDataFromElement('user-data'));
-  const pagesRef = useRef(parseDataFromElement('page-data'));
+export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
+  const [isAuthenticated , setIsAuthenticated] = useState<boolean>(false);
+  const [isSuperUser, setIsSuperUser] = useState<boolean>(false);
+  const apiClient = useAHSApi();
+  const indexedDbClient = useIndexedDB();
+  const cryptoClient = useCryptography(indexedDbClient);
+  const token = useAHSToken(cryptoClient)
+
 
   return (
     <DataContext.Provider
       value={{
-        user: userRef.current,
-        pages: pagesRef.current,
+        apiClient,
+        indexedDbClient,
+        cryptoClient,
+        isAuthenticated,
+        setIsAuthenticated,
+        isSuperUser,
+        setIsSuperUser,
+        token,
       }}
     >
       {children}
