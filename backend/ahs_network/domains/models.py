@@ -1,7 +1,7 @@
 from django.db.models import CharField, ForeignKey, CASCADE, Model, BooleanField, DateTimeField
 from django.db.models.fields import TextField, URLField, EmailField
 
-from backend.apps.network.models.hosts import Host
+from backend.ahs_network.hosts.models import Host
 from backend.ahs_settings.models import Settings
 from backend.ahs_core.mixins import CreationDateMixin, UpdateDateMixin
 from django.utils.translation import gettext_lazy as _

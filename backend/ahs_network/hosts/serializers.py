@@ -1,6 +1,6 @@
 from adrf.serializers import ModelSerializer
 
-from backend.apps.network.models.hosts import Host
+from backend.ahs_network.hosts.models import Host
 
 
 class HostSerializer(ModelSerializer):

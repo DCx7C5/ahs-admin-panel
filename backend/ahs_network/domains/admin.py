@@ -1,15 +1,8 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 
-from .models.domains import Domain
-from .models.hosts import Host
+from backend.ahs_network.domains.models import Domain
 
-
-# Register your models here.
-
-@admin.register(Host)
-class HostAdmin(ModelAdmin):
-    ordering = ('id',)
 
 @admin.register(Domain)
 class DomainAdmin(ModelAdmin):
