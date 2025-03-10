@@ -33,6 +33,9 @@ module.exports = (env, argv) => {
       },
 
     },
+    experiments: {
+      asyncWebAssembly: true,
+    },
     module: {
       rules: [
         {
@@ -79,6 +82,13 @@ module.exports = (env, argv) => {
             filename: "fonts/[hash][ext][query]",
           },
         },
+        {
+          test: /\.wasm$/,
+          use: {
+            loader: "base64-loader",
+          },
+          type: 'javascript/auto'
+        },
       ],
     },
     plugins: [
@@ -100,6 +110,10 @@ module.exports = (env, argv) => {
       alias: {
         "@": path.resolve("js"),
       },
+      fallback: {
+        path: false,
+        fs: false,
+      }
     },
     optimization: {
       splitChunks: {
