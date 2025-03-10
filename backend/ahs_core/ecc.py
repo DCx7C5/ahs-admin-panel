@@ -18,11 +18,12 @@ from cryptography.hazmat.primitives.ciphers.modes import GCM
 from cryptography.hazmat.primitives.hashes import HashAlgorithm, SHA256
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding
-
-from backend.ahs_crypto import settings
+from django.conf import settings
 
 mime = magic.Magic(mime=True)
 executor = ThreadPoolExecutor()
+
+ROOT_PRIVKEY_PATH = os.getenv("ROOT_PRIVKEY_PATH", 'root.private.key')
 
 class Argon2(HashAlgorithm, ABC):
     name = "argon2"
@@ -90,21 +91,21 @@ def load_private_key_from_file(path: os.PathLike, password: str | bytes) -> ec.E
             raise ValueError("Invalid key file format.")
 
 def derive_from_private_root_key(password: str | bytes):
-    rootkey_path = settings.ROOT_PRIVKEY_PATH
+    rootkey_path = ROOT_PRIVKEY_PATH
     privkey = load_private_key_from_file(rootkey_path, password).private_numbers()
     return derive_subkey(privkey, 0)
 
 
 def save_private_key_to_file(
         private_key: ec.EllipticCurvePrivateKey,
-        path: os.PathLike = settings.ROOT_PRIVKEY_PATH,
+        path: os.PathLike = ROOT_PRIVKEY_PATH,
         password: bytes = None
 ):
     with open(path, 'wb') as key_file:
         key_file.write(serialize_private_key_to_pem(private_key, password))
 
 
-def save_public_key_to_file(public_key: ec.EllipticCurvePublicKey, path: os.PathLike = settings.ROOT_PRIVKEY_PATH):
+def save_public_key_to_file(public_key: ec.EllipticCurvePublicKey, path: os.PathLike = ROOT_PRIVKEY_PATH):
     with open(path, 'wb') as key_file:
         key_file.write(serialize_public_key_to_pem(public_key))
 
@@ -279,7 +280,7 @@ def get_root_private_key(password: str) -> ec.EllipticCurvePrivateKey | None:
         raise ValueError("Password is required.")
     if isinstance(password, str):
         password = password.encode('ascii')
-    return load_private_key_from_file(settings.ROOT_PRIVKEY_PATH, password=password)
+    return load_private_key_from_file(ROOT_PRIVKEY_PATH, password=password)
 
 
 async def agenerate_private_key() -> ec.EllipticCurvePrivateKey:
