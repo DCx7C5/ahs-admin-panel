@@ -1,4 +1,4 @@
-import React, {lazy, Suspense, use, useContext} from 'react';
+import React, {lazy, use} from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from "../Sidebar/Sidebar";
 import Navbar from "../Navbar/Navbar";
