@@ -1,59 +1,53 @@
 import {useCallback, useEffect, useState} from "react";
+import {base64UrlDecode, base64UrlEncode} from "../components/utils";
 
 
 export const useAHSToken = (cryptoClient) => {
     const [token, setToken] = useState<string>("");
-    const [header, setHeader] = useState<{}>({})
+    const [isBuilding, setIsBuilding] = useState<boolean>(false);
     const [payload, setPayload] = useState<{}>({})
-    const [signature, setSignature] = useState<string>(null)
 
     useEffect(() => {
-        const h = base64UrlEncode(header)
+        console.log("useAHSToken ", )
+
+        return () => {
+            console.log("useAHSToken cleanup")
+            setPayload({})
+            setToken('')
+        }
+    }, []);
+
+    // if payload changes it creates a new header and signature
+    useEffect(() => {
+        if (isBuilding) return
+        const h = createTokenHeader()
         const p = base64UrlEncode(payload)
-        setSignature(base64UrlEncode(cryptoClient.sign(`${h}.${p}`)))
+        const s: string = createTokenSignature(h, p)
+        setToken(`${h}.${p}.${s}`)
+        console.log("useAHSToken ", token, base64UrlDecode(h), base64UrlDecode(p))
+    }, [payload])
 
-        console.log("useAHSToken ", signature, h, p)
-    }, [header, payload])
+    const createTokenHeader = () => {
+        return base64UrlEncode({
+            date: new Date().toISOString(),
+        })
+    }
 
-    useEffect(() => {
-        setToken(`${header}.${payload}.${signature}`)
-    }, [signature]);
-
-
-    const addTokenHeader = useCallback(
-        async (headerKey: string, headerValue: any) => {
-            setHeader((prevState) => ({
-                ...prevState,
-                [headerKey]: headerValue,
-            }))
-    },[])
+    const createTokenSignature = (h, p) => {
+      return base64UrlEncode(cryptoClient.sign(`${h}.${p}`))
+    }
 
     const addTokenPayload = useCallback(
         async (payloadKey: string, payloadValue: any) => {
-            setHeader((prevState) => ({
+            setPayload((prevState) => ({
                 ...prevState,
                 [payloadKey]: payloadValue,
             }))
     },[])
 
-    function base64UrlEncode(str) {
-        return btoa(str) // Convert to Base64
-            .replace(/\+/g, '-') // Replace + with -
-            .replace(/\//g, '_') // Replace / with _
-            .replace(/=+$/, ''); // Remove padding
-    }
-
-    function base64UrlDecode(str) {
-        str = str.replace(/-/g, '+').replace(/_/g, '/'); // Convert back to Base64
-        while (str.length % 4) {
-            str += '='; // Add padding if needed
-        }
-        return atob(str); // Decode Base64
-    }
 
     return {
         token,
-        addTokenHeader,
         addTokenPayload,
     };
 }
