@@ -1,41 +1,56 @@
-import React, {useState, use, useEffect} from "react";
-import {AuthContext} from "../components/AuthProvider";
-import {useNavigate} from "react-router-dom";
+import React, {use, useActionState, useEffect, useOptimistic} from "react";
+import { DataContext } from "../components/DataProvider";
+import { useNavigate } from "react-router-dom";
+import "@/../css/register.scss";
+
 
 export const Login: React.FC = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, apiClient, cryptoClient } = use(DataContext);
   const navigate = useNavigate();
-  const { handleLogin } = use(AuthContext);
+
+  const [formState, formAction, isPending] = useActionState(
+    async (prevState, formData) => {
+      const username = formData.get("username") as string;
+      const password = formData.get("password") as string;
+
+
+      const salt = cryptoClient.generateRandomSalt() as Uint8Array;
+
+      try {
+        const response = await apiClient.post("api/login/", {
+          username: username,
+          publicKey: password
+        });
+        console.log(response)
+        if (response.status === 200) {
+          localStorage.setItem("access", response.data.access);
+          //window.location.href = "/"; // Redirect on success
+          navigate('/')
+          return { ...prevState, error: null };
+        } else {
+          throw new Error("Invalid credentials");
+        }
+      } catch (error) {
+        return { ...prevState, error: "Login failed. Check credentials." };
+      }
+    },
+    { error: null }
+  );
 
   useEffect(() => {
-    console.log("Login | Mounted component")
-
-    return () => console.log("Login | Unmounted component")
-  }, []);
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError(null);
-
-    try {
-      await handleLogin({ username, password });
-      console.log("Login successful");
-      // Redirect or perform additional actions upon successful login
-      navigate("/");
-    } catch (e) {
-      setError("Invalid username or password. Please try again."); // Show error message
+    if (isAuthenticated) {
+      navigate("/", )
     }
-  };
+  }, []);
 
   return (
     <div className="text-center min-vh-100 max-vh-100" id="login-wrap">
-      <main className="form-signin w-100 m-auto">
-        <form onSubmit={handleSubmit}>
-          <h1 className="h3 mb-3 fw-normal">Please sign in</h1>
+        <form
+          action={formAction}
+        >
+          <h1 className="h3 mb-3 fw-normal">Please log in</h1>
 
-          {error && <div className="alert alert-danger">{error}</div>}
+          {formState.error && <div className="alert alert-danger">{formState.error}</div>}
 
           <div className="form-floating mb-3">
             <input
@@ -45,11 +60,10 @@ export const Login: React.FC = () => {
               id="username"
               placeholder="Username"
               required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
             />
             <label htmlFor="username">Username</label>
           </div>
+
           <div className="form-floating mb-3">
             <input
               type="password"
@@ -58,18 +72,15 @@ export const Login: React.FC = () => {
               id="password"
               placeholder="Password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
             />
             <label htmlFor="password">Password</label>
           </div>
 
-          <button className="w-100 btn btn-lg btn-primary" type="submit">
-            Sign in
+          <button className="w-100 btn btn-lg btn-primary" type="submit" disabled={isPending}>
+            {isPending ? "Signing in..." : "Sign in"}
           </button>
           <p className="mt-5 mb-3 text-muted">©2025</p>
         </form>
-      </main>
     </div>
   );
 };

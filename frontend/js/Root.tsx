@@ -47,11 +47,12 @@ export const Root = () => {
               <Route path="/" element={<Layout />}>
                 <Route path="accounts/login/" element={<Login />} />
                 <Route path="accounts/signup/" element={<SignUp />} />
+                                  <Route path="test/" element={<Test />} />
                 <Route element={<AuthProtectedRoutes />}>
                   <Route index element={<DashBoard />} />
                   <Route path="dashboard/" element={<DashBoard />} />
                   <Route path="settings/" element={<Settings />} />
-                  <Route path="logout/" element={<Test />} />
+                  <Route path="*" element={<Test />} />
                 </Route>
               </Route>
             </Routes>
