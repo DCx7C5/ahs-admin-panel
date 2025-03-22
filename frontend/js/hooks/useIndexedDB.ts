@@ -1,56 +1,119 @@
 import {useCallback, useEffect, useRef, useState} from "react";
-import {IDBPDatabase, openDB} from "idb";
+import {IDBPDatabase, openDB, StoreValue} from "idb";
 
-
-interface IndexedDB {
-    storePrivateKey: (privateKey: any) => Promise<void>;
-    storePublicKey: (publicKey: any) => Promise<void>;
-    storeServerPublicKey: (serverPublicKey: any) => Promise<void>;
-    getPrivateKey: () => Promise<string|null>;
-    getServerPublicKey: () => Promise<string|null>;
-    getPublicKey: () => Promise<string|null>;
+// Updated interface to reflect CryptoKey usage
+export interface IndexedDB {
+  storePrivateKey: (privateKey: CryptoKey, privateKeyAB: ArrayBuffer) => Promise<void>;
+  storePublicKey: (publicKey: CryptoKey, publicKeyAB: ArrayBuffer) => Promise<void>;
+  storeServerPublicKey: (serverPublicKey: CryptoKey, serverPublicKeyAB: ArrayBuffer) => Promise<void>;
+  getPrivateKey: () => Promise<{CryptoKey, ArrayBuffer } | null>;
+  getPublicKey: () => Promise<{CryptoKey, ArrayBuffer } | null>;
+  getServerPublicKey: () => Promise<{CryptoKey, ArrayBuffer } | null>;
 }
 
-interface KeyRecord {
+export interface KeyRecord {
   id: string;
-  keyData: any;
+  keyData: any; // This will hold the exported key (e.g., JWK)
   created: string;
 }
 
+export const useIndexedDB = (name: string = "ahs"): IndexedDB => {
+  const dbName = useRef<string>(name).current;
+  const [database, setDatabase] = useState<IDBPDatabase | null>(null);
 
-export const useIndexedDB = (): IndexedDB => {
-    const dbName = useRef<string>('ahs').current;
-    const [database, setDatabase] = useState<IDBPDatabase>(null);
+  useEffect(() => {
+    initDatabase().then();
+    return () => {
+      deleteDatabase().then();
+    };
+  }, []);
 
+  async function initDatabase() {
+    const db = await openDB("ahs", 1, {
+      upgrade(db) {
+        db.createObjectStore("keys", { keyPath: "id" });
+      },
+    });
+    setDatabase(db);
+    console.log("Initialized database...");
+  }
 
-    useEffect(() => {
-        initDatabase()
-            .then(r => console.log("IndexedDB initialized ", r));
+  async function deleteDatabase(): Promise<void> {
+    await indexedDB.deleteDatabase(dbName);
+  }
 
-        return () => {
-            deleteDatabase()
-                .then(r => console.log("Deleted Indexed database ", r))
-        }
-    }, []);
+  const store = async (keyType: string, key: CryptoKey, keyAB: ArrayBuffer) => {
+    if (!database) throw new Error("Database not initialized");
+    try {
+      const tx = database.transaction("keys", "readwrite");
+      const store = tx.objectStore("keys");
+      const record: KeyRecord = {
+          id: `${keyType}`,
+          keyData: key,
+          created: new Date().toISOString(),
+      };
+      const record2: KeyRecord = {
+          id: `${keyType}AB`,
+          keyData: keyAB,
+          created: new Date().toISOString(),
+      };
+      await store.put(record);
+      await store.put(record2);
+      await tx.done;
+    } catch (error) {
+      console.error("Error storing signing key:", error);
+      throw error;
+    }
+  }
 
-    async function initDatabase() {
-        console.log("Initializing database...");
-        const db = await openDB('ahs', 1, {
-            upgrade(db) {
-                // Create an object store called 'keys' with a keyPath of 'id'
-                db.createObjectStore('keys', { keyPath: 'id' });
-            }
-        });
-        setDatabase(db)
+  const retrieve = async (keyType: string) => {
+
+  }
+
+  const storeSigningKey = useCallback((key: CryptoKey) => {
+    if (!database) throw new Error("Database not initialized");
+    try {
+      const tx = database.transaction("keys", "readwrite");
+      const store = tx.objectStore("keys");
+
+    } catch (error) {
+      console.error("Error storing signing key:", error);
+      throw error;
     }
 
-    async function deleteDatabase(): Promise<void> {
-        await indexedDB.deleteDatabase(dbName);
-    }
+  },[database])
 
-      // Stores a private key record.
+  const storeVerificationKey = useCallback((key: CryptoKey) => {
+
+  },[database])
+
+  const storeEncryptionKey = useCallback((key: CryptoKey) => {
+
+  },[database])
+
+  const storeDecryptionKey = useCallback((key: CryptoKey) => {
+
+  },[database])
+
+  const getSigningKey = useCallback((key: CryptoKey) => {
+
+  },[database])
+
+  const getVerificationKey = useCallback((key: CryptoKey) => {
+
+  },[database])
+
+  const getEncryptionKey = useCallback((key: CryptoKey) => {
+
+  },[database])
+
+  const getDecryptionKey = useCallback((key: CryptoKey) => {
+
+  },[database])
+
+
   const storePrivateKey = useCallback(
-    async (privateKey: any) => {
+    async (privateKey: CryptoKey, privateKeyAB: ArrayBuffer) => {
       if (!database) throw new Error("Database not initialized");
       try {
         const tx = database.transaction("keys", "readwrite");
@@ -60,7 +123,13 @@ export const useIndexedDB = (): IndexedDB => {
           keyData: privateKey,
           created: new Date().toISOString(),
         };
+        const record2: KeyRecord = {
+          id: "privateKeyAB",
+          keyData: privateKeyAB,
+          created: new Date().toISOString(),
+        }
         await store.put(record);
+        await store.put(record2);
         await tx.done;
       } catch (error) {
         console.error("Error storing private key:", error);
@@ -70,16 +139,17 @@ export const useIndexedDB = (): IndexedDB => {
     [database]
   );
 
-  // Stores a public key record.
+  // Store public key by exporting it to JWK format
   const storePublicKey = useCallback(
-    async (publicKey: any) => {
+    async (publicKey: CryptoKey) => {
       if (!database) throw new Error("Database not initialized");
       try {
+        const exportedKey = await crypto.subtle.exportKey("jwk", publicKey);
         const tx = database.transaction("keys", "readwrite");
         const store = tx.objectStore("keys");
         const record: KeyRecord = {
           id: "publicKey",
-          keyData: publicKey,
+          keyData: exportedKey,
           created: new Date().toISOString(),
         };
         await store.put(record);
@@ -92,38 +162,43 @@ export const useIndexedDB = (): IndexedDB => {
     [database]
   );
 
-  // Stores a client public key record.
+  // Store server public key by exporting it to JWK format
   const storeServerPublicKey = useCallback(
-    async (serverPublicKey: any) => {
+    async (serverPublicKey: CryptoKey) => {
       if (!database) throw new Error("Database not initialized");
       try {
+        const exportedKey = await crypto.subtle.exportKey("jwk", serverPublicKey);
         const tx = database.transaction("keys", "readwrite");
         const store = tx.objectStore("keys");
         const record: KeyRecord = {
           id: "serverPublicKey",
-          keyData: serverPublicKey,
+          keyData: exportedKey,
           created: new Date().toISOString(),
         };
         await store.put(record);
         await tx.done;
       } catch (error) {
-        console.error("Error storing client public key:", error);
+        console.error("Error storing server public key:", error);
         throw error;
       }
     },
     [database]
   );
 
-  // Retrieves a private key record by id.
+  // Retrieve private key and import it from JWK format
   const getPrivateKey = useCallback(
-    async (): Promise<any | null> => {
+    async (): Promise<KeyRecord | null> => {
       if (!database) throw new Error("Database not initialized");
       try {
         const tx = database.transaction("keys", "readonly");
         const store = tx.objectStore("keys");
         const record: KeyRecord = await store.get("privateKey");
         await tx.done;
-        return record ? record.keyData : null;
+        if (record && record.keyData) {
+          // Adjust algorithm parameters based on your key type (e.g., ECDH, RSA)
+            return record
+        }
+        return null;
       } catch (error) {
         console.error("Error retrieving private key:", error);
         throw error;
@@ -132,16 +207,25 @@ export const useIndexedDB = (): IndexedDB => {
     [database]
   );
 
-  // Retrieves a public key record by id.
+  // Retrieve public key and import it from JWK format
   const getPublicKey = useCallback(
-    async (): Promise<any | null> => {
+    async (): Promise<CryptoKey | null> => {
       if (!database) throw new Error("Database not initialized");
       try {
         const tx = database.transaction("keys", "readonly");
         const store = tx.objectStore("keys");
         const record: KeyRecord = await store.get("publicKey");
         await tx.done;
-        return record ? record.keyData : null;
+        if (record && record.keyData) {
+            return await crypto.subtle.importKey(
+              "jwk",
+              record.keyData,
+              {name: "ECDH", namedCurve: "P-256"}, // Example: adjust as needed
+              true, // extractable
+              [] // Public keys typically have no usages
+          );
+        }
+        return null;
       } catch (error) {
         console.error("Error retrieving public key:", error);
         throw error;
@@ -150,33 +234,41 @@ export const useIndexedDB = (): IndexedDB => {
     [database]
   );
 
-  // Retrieves a client public key record by id.
+  // Retrieve server public key and import it from JWK format
   const getServerPublicKey = useCallback(
-    async (): Promise<any | null> => {
+    async (): Promise<CryptoKey | null> => {
       if (!database) throw new Error("Database not initialized");
       try {
         const tx = database.transaction("keys", "readonly");
         const store = tx.objectStore("keys");
-        const record: KeyRecord = await store.get('serverPublicKey');
+        const record: KeyRecord = await store.get("serverPublicKey");
         await tx.done;
-        return record ? record.keyData : null;
+        if (record && record.keyData) {
+            return await crypto.subtle.importKey(
+              "jwk",
+              record.keyData,
+              {name: "ECDH", namedCurve: "P-256"}, // Example: adjust as needed
+              true, // extractable
+              [] // Public keys typically have no usages
+          );
+        }
+        return null;
       } catch (error) {
-        console.error("Error retrieving client public key:", error);
+        console.error("Error retrieving server public key:", error);
         throw error;
       }
     },
     [database]
   );
 
-
-    return {
-        storePrivateKey,
-        storePublicKey,
-        storeServerPublicKey,
-        getPrivateKey,
-        getPublicKey,
-        getServerPublicKey,
-    }
-}
+  return {
+    storePrivateKey,
+    storePublicKey,
+    storeServerPublicKey,
+    getPrivateKey,
+    getPublicKey,
+    getServerPublicKey,
+  };
+};
 
 export default useIndexedDB;
