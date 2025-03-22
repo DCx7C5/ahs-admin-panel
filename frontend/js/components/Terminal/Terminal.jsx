@@ -16,15 +16,15 @@ export const _Terminal = () => {
   const { isVisible } = use(TerminalContext);
 
   return (<>
-        <TerminalToggleButton />
-        <Suspense>  {/* Lazy-load the TerminalContainer when toggled */}
-          {isVisible &&
-            <TerminalContainer>
-              <TerminalTaskbar/>
-              <TerminalContent/>
-            </TerminalContainer>
-          }
-        </Suspense>
+    <Suspense>  {/* Lazy-load the TerminalContainer when toggled */}
+      {isVisible &&
+        <TerminalContainer>
+          <TerminalTaskbar/>
+          <TerminalContent/>
+        </TerminalContainer>
+      }
+    </Suspense>
+    <TerminalToggleButton />
   </>);
 };
 
