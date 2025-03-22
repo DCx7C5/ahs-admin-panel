@@ -6,8 +6,8 @@ import useIndexedDB from "../hooks/useIndexedDB";
 
 
 export interface DataContextType {
-    apiClient: any,
-    cryptoClient: any,
+    apiClient?: any,
+    cryptoClient?: any,
     isAuthenticated: boolean;
     setIsAuthenticated: (value: (((prevState: boolean) => boolean) | boolean)) => void;
     isSuperUser: boolean;
@@ -25,23 +25,20 @@ interface DataProviderProps {
 export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
   const [isAuthenticated , setIsAuthenticated] = useState<boolean>(false);
   const [isSuperUser, setIsSuperUser] = useState<boolean>(false);
-  const apiClient = useAHSApi();
+  //const apiClient = useAHSApi();
   const indexedDbClient = useIndexedDB();
   const cryptoClient = useCryptography(indexedDbClient);
-  const token = useAHSToken(cryptoClient)
+  //const token = useAHSToken(cryptoClient)
 
 
   return (
     <DataContext.Provider
       value={{
-        apiClient,
-        indexedDbClient,
         cryptoClient,
         isAuthenticated,
         setIsAuthenticated,
         isSuperUser,
         setIsSuperUser,
-        token,
       }}
     >
       {children}
