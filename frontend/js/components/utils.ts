@@ -31,4 +31,37 @@ function inspectFunction(func: Function){
         });
 }
 
+export function ab2hex(ab) {
+    return Array.prototype.map.call(new Uint8Array(ab), x => ('00' + x.toString(16)).slice(-2)).join('');
+}
+
+export function hex2ab(hex) {
+    return new Uint8Array(hex.match(/[\da-f]{2}/gi).map(function (h) { return parseInt(h, 16) }));
+}
+
+export function str2ab(str) {
+  const buf = new ArrayBuffer(str.length);
+  const bufView = new Uint8Array(buf);
+  for (let i = 0, strLen = str.length; i < strLen; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+  return buf;
+}
+
+
+export function base64UrlEncode(str) {
+    return btoa(str) // Convert to Base64
+        .replace(/\+/g, '-') // Replace + with -
+        .replace(/\//g, '_') // Replace / with _
+        .replace(/=+$/, ''); // Remove padding
+}
+
+export function base64UrlDecode(str) {
+    str = str.replace(/-/g, '+').replace(/_/g, '/'); // Convert back to Base64
+    while (str.length % 4) {
+        str += '='; // Add padding if needed
+    }
+    return atob(str); // Decode Base64
+}
+
 export { inspectFunction };
