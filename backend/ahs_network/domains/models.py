@@ -3,7 +3,7 @@ from django.db.models.fields import TextField, URLField, EmailField
 
 from backend.ahs_network.hosts.models import Host
 from backend.ahs_settings.models import Settings
-from backend.ahs_core.mixins import CreationDateMixin, UpdateDateMixin
+from backend.ahs_core.models.mixins import CreationDateMixin, UpdateDateMixin
 from django.utils.translation import gettext_lazy as _
 
 

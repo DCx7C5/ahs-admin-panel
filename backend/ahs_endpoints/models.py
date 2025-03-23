@@ -16,7 +16,7 @@ from django.db.models.indexes import Index
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from backend.ahs_core.mixins import TreeMixin
+from backend.ahs_core.models.mixins import TreeMixin
 from backend.ahs_core.models.apps import App
 
 
