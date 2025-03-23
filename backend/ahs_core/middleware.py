@@ -11,6 +11,7 @@ from django.contrib.messages.storage import default_storage
 from django.contrib.sessions.backends.base import UpdateError
 from django.contrib.sessions.exceptions import SessionInterrupted
 from django.http import HttpRequest, HttpResponse
+from django.middleware.csrf import rotate_token
 from django.utils.cache import patch_vary_headers
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
@@ -48,7 +49,6 @@ class AHSAdminPanelMiddleware(MiddlewareMixin):
         request.session = self.SessionStore(session_key)
         # auth
         logger.debug("process_request auth")
-
         request.user = SimpleLazyObject(lambda: get_user(request))  # noqa
         request.auser = partial(auser, request)
         # messages
@@ -126,4 +126,21 @@ class AHSSessionTokenMiddleware(MiddlewareMixin):
     def __init__(self, get_response):
         super().__init__(get_response)
         engine = import_module(settings.SESSION_ENGINE)
+        self.SessionStore = engine.SessionStore
+
+    async def __call__(self, request: HttpRequest):
+        await self.process_request(request)
+        response = await self.get_response(request)
+        response = await self.process_response(request, response)
+        return response
+
+    async def process_request(self, request: HttpRequest) -> None:
+        session_key = request.COOKIES.get(settings.SESSION_COOKIE_NAME)
+        request.session = self.SessionStore(session_key)
+        logger.debug(f"process_request headers {request.headers}")
+        logger.debug(f"process_request cookies {request.COOKIES}")
+        logger.debug(f"process_request META {request.META}")
+
+    async def process_response(self, request, response) -> HttpResponse:
+        return response
 

@@ -95,6 +95,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'backend.ahs_core.middleware.AHSAdminPanelMiddleware',
+    'backend.ahs_core.middleware.AHSSessionTokenMiddleware',
     #'django.contrib.auth.middleware.LoginRequiredMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -208,17 +209,17 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_REDIRECT_URL = 'ahs_core:dashboard'
-LOGOUT_REDIRECT_URL = 'login'
-LOGIN_URL = 'login'
-LOGOUT_URL = 'logout'
+LOGIN_REDIRECT_URL = 'ahs_core:default'
+LOGOUT_REDIRECT_URL = 'accounts/login'
+LOGIN_URL = 'accounts/login'
+LOGOUT_URL = 'accounts/logout'
 
 AUTH_USER_MODEL = "ahs_core.AHSUser"
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_ENGINE = 'backend.ahs_core.sessions'
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -277,7 +278,7 @@ if not os.path.exists(ROOT_PRIVKEY_PATH):
     raise ImproperlyConfigured(f"Root private key file '{ROOT_PRIVKEY_PATH}' does not exist.")
 
 SESSION_COOKIE_SECURE = False if DEBUG else True
-SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = False if DEBUG else True
 
 CSRF_COOKIE_SECURE = False if DEBUG else True
 CSRF_COOKIE_HTTPONLY = False if DEBUG else True
