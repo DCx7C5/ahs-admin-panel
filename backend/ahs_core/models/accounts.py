@@ -1,7 +1,6 @@
 import logging
 import uuid
 
-from django.contrib.auth.base_user import BaseUserManager
 from django.db.models import ImageField
 from django.db.models.constraints import UniqueConstraint
 from django.db.models.fields import UUIDField, DateTimeField, CharField, URLField
@@ -18,16 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 
-class AHSUserManager(BaseUserManager):
-    async def create_user(self):
-        pass
-
 
 class AHSUser(AbstractUser):
     """
     Custom user model with additional fields and functionality.
     """
-    password = None
     username_validator = AHSUsernameValidator()
 
     username = CharField(
@@ -67,7 +61,6 @@ class AHSUser(AbstractUser):
         null=False,
     )
 
-    objects = AHSUserManager()
 
     @property
     def permissions(self):

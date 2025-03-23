@@ -1,18 +1,13 @@
 from django.contrib.sessions.backends.db import SessionStore as DBSessionStore
-from django.contrib.sessions.models import Session
-from django.db.models import UUIDField
 
-
-class AHSSession(Session):
-
-    socket_url = UUIDField(auto_created=True, editable=True)
 
 
 class SessionStore(DBSessionStore):
 
     @classmethod
     def get_model_class(cls):
-        # Use the custom session model
+        # Lazy import to avoid circular dependency
+        from backend.ahs_core.models import AHSSession
         return AHSSession
 
     def create_model_instance(self, data):
