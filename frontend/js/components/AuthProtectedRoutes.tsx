@@ -2,7 +2,7 @@ import React, {use, useEffect} from "react";
 import {Outlet, useNavigate} from "react-router-dom";
 import {DataContext} from "./DataProvider";
 
-const AuthProtectedRoutes = () => {
+export const AuthProtectedRoutes = () => {
   const {isAuthenticated} = use(DataContext);
   const navigate = useNavigate();
 

@@ -1,8 +1,13 @@
 import React, {lazy, Suspense} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
-import AuthProtectedRoutes from "./components/AuthProtectedRoutes";
 import DataProvider from "./components/DataProvider";
 import PageSuspenseSpinner from "./components/Spinner";
+
+const AuthProtectedRoutes = lazy(() => import("./components/AuthProtectedRoutes")
+    .then(module => ({
+        default: module.AuthProtectedRoutes
+    }))
+);
 
 const Layout = lazy(() => import("./components/Layout/Layout")
     .then(module => ({
