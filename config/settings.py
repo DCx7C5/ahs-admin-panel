@@ -95,7 +95,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'backend.ahs_core.middleware.AHSAdminPanelMiddleware',
-    'backend.ahs_core.middleware.AHSSessionTokenMiddleware',
+    'backend.ahs_core.middleware.AHSSessionMiddleware',
     #'django.contrib.auth.middleware.LoginRequiredMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -279,7 +279,7 @@ if not os.path.exists(ROOT_PRIVKEY_PATH):
     raise ImproperlyConfigured(f"Root private key file '{ROOT_PRIVKEY_PATH}' does not exist.")
 
 SESSION_COOKIE_SECURE = False if DEBUG else True
-SESSION_COOKIE_HTTPONLY = False if DEBUG else True
+SESSION_COOKIE_HTTPONLY = True
 
 CSRF_COOKIE_SECURE = False if DEBUG else True
 CSRF_COOKIE_HTTPONLY = False if DEBUG else True
