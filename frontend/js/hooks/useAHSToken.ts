@@ -2,6 +2,8 @@ import {useCallback, useEffect, useState} from "react";
 import {base64UrlDecode, base64UrlEncode} from "../components/utils";
 
 
+
+
 export const useAHSToken = (cryptoClient) => {
     const [token, setToken] = useState<string>("");
     const [isBuilding, setIsBuilding] = useState<boolean>(false);
@@ -9,7 +11,6 @@ export const useAHSToken = (cryptoClient) => {
 
     useEffect(() => {
         console.log("useAHSToken ", )
-
         return () => {
             console.log("useAHSToken cleanup")
             setPayload({})
@@ -22,19 +23,15 @@ export const useAHSToken = (cryptoClient) => {
         if (isBuilding) return
         const h = createTokenHeader()
         const p = base64UrlEncode(payload)
-        const s: string = createTokenSignature(h, p)
+        const s: string = base64UrlEncode(cryptoClient.sign(`${h}.${p}`))
         setToken(`${h}.${p}.${s}`)
-        console.log("useAHSToken ", token, base64UrlDecode(h), base64UrlDecode(p))
+        console.log("useAHSToken ", token, base64UrlDecode<string>(h), payload)
     }, [payload])
 
     const createTokenHeader = () => {
         return base64UrlEncode({
             date: new Date().toISOString(),
         })
-    }
-
-    const createTokenSignature = (h, p) => {
-      return base64UrlEncode(cryptoClient.sign(`${h}.${p}`))
     }
 
     const addTokenPayload = useCallback(
@@ -45,9 +42,9 @@ export const useAHSToken = (cryptoClient) => {
             }))
     },[])
 
-
     return {
         token,
+        payload,
         addTokenPayload,
     };
 }
