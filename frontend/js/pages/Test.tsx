@@ -1,6 +1,6 @@
-import React, {useRef, useState} from "react";
+import React, {use, useRef, useState} from "react";
 import useCryptography from "../hooks/useCryptography";
-import useIndexedDB from "../hooks/useIndexedDB";
+import {DataContext} from "../components/DataProvider";
 
 export const Test: React.FC = () => {
     const { password1, password2 } = useRef({
@@ -11,26 +11,25 @@ export const Test: React.FC = () => {
     const [{privateKey1, publicKey1}, setKeyPair1] = useState({privateKey1: null, publicKey1: null});
     const [{privateKey2, publicKey2}, setKeyPair2] = useState({privateKey2: null, publicKey2: null});
 
-    const indexedDB = useIndexedDB();
-    const cryptoClient = useCryptography(indexedDB);
     const {
-        encrypt,
-        decrypt,
-        sign,
-        verify,
-        deriveSharedSecret,
-        getPublicFromPrivate,
-        deriveRawPrivateArgon,
-        deriveRawPrivate,
-        generateKeyFromPassword,
-        generateRandomSalt,
-    } = cryptoClient;
-    const salt = generateRandomSalt();
+        cryptoClient,
+        isAuthenticated,
+        isSuperUser
+    } = use(DataContext)
+
     return (
         <div>
             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <h4 className={'key'}>Authenticated:</h4>
+                <div className={'value'}>{isAuthenticated ? 'yes' : 'no'}</div>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <h4 className={'key'}>SuperUser:</h4>
+                <div className={'value'}>{isSuperUser ? 'yes' : 'no'}</div>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                 <h4 className={'key'}>Salt:</h4>
-                <div className={'value'}>{salt}</div>
+                <div className={'value'}>{}</div>
             </div>
             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                 <h4 className={'key'}>Password:</h4>
@@ -42,7 +41,7 @@ export const Test: React.FC = () => {
             </div>
             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                 <h4 className={'key'}>PrivateKey1:</h4>
-                <div className={'value'}>{generateKeyFromPassword(password1, salt, 'argon')}</div>
+                <div className={'value'}>{}</div>
             </div>
         </div>
     )
