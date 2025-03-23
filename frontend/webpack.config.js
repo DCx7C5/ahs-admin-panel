@@ -2,7 +2,6 @@ const path = require("path");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const BundleTracker = require("webpack-bundle-tracker");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-//const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isDev = argv.mode === "development";
@@ -32,9 +31,6 @@ module.exports = (env, argv) => {
         overlay: false, // Prevent error overlay popups
       },
 
-    },
-    experiments: {
-      asyncWebAssembly: true,
     },
     module: {
       rules: [
@@ -81,13 +77,6 @@ module.exports = (env, argv) => {
           generator: {
             filename: "fonts/[hash][ext][query]",
           },
-        },
-        {
-          test: /\.wasm$/,
-          use: {
-            loader: "base64-loader",
-          },
-          type: 'javascript/auto'
         },
       ],
     },
