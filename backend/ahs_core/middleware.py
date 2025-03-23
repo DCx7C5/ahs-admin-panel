@@ -118,7 +118,7 @@ class AHSAdminPanelMiddleware(MiddlewareMixin):
         return response
 
 
-class AHSSessionTokenMiddleware(MiddlewareMixin):
+class AHSSessionMiddleware(MiddlewareMixin):
     async_capable = True
     sync_capable = False
 
@@ -134,8 +134,8 @@ class AHSSessionTokenMiddleware(MiddlewareMixin):
         return response
 
     async def process_request(self, request: HttpRequest) -> None:
-        session_key = request.COOKIES.get(settings.SESSION_COOKIE_NAME)
-        request.session = self.SessionStore(session_key)
+        session_token = request.COOKIES.get('token')
+        request.session = self.SessionStore(session_token)
         logger.debug(f"process_request headers {request.headers}")
         logger.debug(f"process_request cookies {request.COOKIES}")
         logger.debug(f"process_request META {request.META}")
