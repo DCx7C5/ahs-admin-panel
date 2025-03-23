@@ -219,7 +219,8 @@ AUTH_USER_MODEL = "ahs_core.AHSUser"
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
-SESSION_ENGINE = 'backend.ahs_core.sessions'
+AHS_SESSION_ENGINE = 'backend.ahs_core.engines'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
