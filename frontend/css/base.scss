@@ -34,7 +34,65 @@ body {
   overflow-y: auto; /* Allows scrolling only when content exceeds the viewport */
   overflow-x: hidden;
 }
+/* Container for the spinner, covering the entire screen */
+.loader-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column; /* Stack spinner and text vertically */
+  z-index: 9999; /* Ensure it’s on top of everything */
+  opacity: 0; /* Start invisible for fade-in */
+  animation: fadeIn 0.3s ease-in forwards; /* Fade in when it appears */
+}
 
+/* The spinning loader itself */
+.loader {
+  border: 5px solid #454648; /* Light gray border */
+  border-top: 5px solid #005ba5; /* Blue top border for contrast */
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite, pulse 2s ease-in-out infinite; /* Spin + pulsate */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  position: relative;
+}
+
+/* Style the "Loading…" text inside the loader div */
+.loader::after {
+  position: absolute;
+  top: 100%; /* Place below the spinner */
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+  margin-top: 10px; /* Space between spinner and text */
+  font-family: Arial, sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333; /* Dark gray text */
+}
+
+/* Keyframes for spinning animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Keyframes for fade-in effect on container */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Keyframes for pulsating effect on spinner */
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
 .navbar {
   background-color: #484c54;
   color: var(--light-text);

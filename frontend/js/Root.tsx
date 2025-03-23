@@ -1,9 +1,14 @@
 import React, {lazy, Suspense} from "react";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
-import Layout from "./components/Layout/Layout";
 import AuthProtectedRoutes from "./components/AuthProtectedRoutes";
 import DataProvider from "./components/DataProvider";
+import PageSuspenseSpinner from "./components/Spinner";
 
+const Layout = lazy(() => import("./components/Layout/Layout")
+    .then(module => ({
+        default: module.Layout,
+    }))
+);
 
 const DashBoard = lazy(() => import("./pages/Dashboard")
     .then(module => ({
@@ -41,23 +46,23 @@ export const Root = () => {
 
   return (
     <DataProvider>
-        <Suspense>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Layout />}>
-                <Route path="accounts/login/" element={<Login />} />
-                <Route path="accounts/signup/" element={<SignUp />} />
-                <Route element={<AuthProtectedRoutes />}>
-                  <Route index element={<DashBoard />} />
-                  <Route path="test/" element={<Test />} />
-                  <Route path="dashboard/" element={<DashBoard />} />
-                  <Route path="settings/" element={<Settings />} />
-                  <Route path="*" element={<Test />} />
-                </Route>
+      <Suspense fallback={<PageSuspenseSpinner />}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route path="accounts/login/" element={<Login />} />
+              <Route path="accounts/signup/" element={<SignUp />} />
+              <Route element={<AuthProtectedRoutes />}>
+                <Route index element={<DashBoard />} />
+                <Route path="test/" element={<Test />} />
+                <Route path="dashboard/" element={<DashBoard />} />
+                <Route path="settings/" element={<Settings />} />
+                <Route path="*" element={<Test />} />
               </Route>
-            </Routes>
-          </BrowserRouter>
-        </Suspense>
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </Suspense>
     </DataProvider>
   );
 };
