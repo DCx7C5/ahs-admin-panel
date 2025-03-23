@@ -1,15 +1,14 @@
-import React, {createContext, ReactNode, useState} from "react";
-import useAHSApi from "../hooks/useAHSApi";
+import React, {createContext, ReactNode, useEffect, useState} from "react";
 import useCryptography from "../hooks/useCryptography";
 import useAHSToken from "../hooks/useAHSToken";
-import useIndexedDB from "../hooks/useIndexedDB";
+import useAHSApi from "../hooks/useAHSApi";
+import useAHSAuthentication from "../hooks/useAHSAuthentication";
 
 
 export interface DataContextType {
-    apiClient?: any,
-    cryptoClient?: any,
+    apiCli?: any,
+    cryptoCli?: any,
     isAuthenticated: boolean;
-    setIsAuthenticated: (value: (((prevState: boolean) => boolean) | boolean)) => void;
     isSuperUser: boolean;
     setIsSuperUser: (value: ((prevState: boolean) => boolean) | boolean) => void;
 }
@@ -23,20 +22,26 @@ interface DataProviderProps {
 
 
 export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
-  const [isAuthenticated , setIsAuthenticated] = useState<boolean>(false);
   const [isSuperUser, setIsSuperUser] = useState<boolean>(false);
-  //const apiClient = useAHSApi();
-  const indexedDbClient = useIndexedDB();
-  const cryptoClient = useCryptography(indexedDbClient);
-  //const token = useAHSToken(cryptoClient)
+  const apiCli = useAHSApi();
+  const {isAuthenticated} = useAHSAuthentication(apiCli)
+  const cryptoCli = useCryptography();
+  //const {token, addTokenPayload} = useAHSToken(cryptoCli);
 
+  useEffect(() => {
+    console.log("DataProvider | Init | Mounting component")
+
+    return () => {
+        console.log("DataProvider | Unmounting, disconnecting socket")
+    }
+  }, []);
 
   return (
     <DataContext.Provider
       value={{
-        cryptoClient,
+        apiCli,
+        cryptoCli,
         isAuthenticated,
-        setIsAuthenticated,
         isSuperUser,
         setIsSuperUser,
       }}
