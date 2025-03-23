@@ -1,17 +1,16 @@
-from django.urls import path, include
 
-from backend.ahs_core.views import UserProfileView, async_dashboard_view, ReactView
+from django.urls import path, include
+from backend.ahs_core.views import default_view, signup_view, login_view
 
 app_name = 'ahs_core'
 
-
 urlpatterns = [
-    path('ahs_settings/', async_dashboard_view, name='ahs_settings'),
-    path('profile/<str:username>/', UserProfileView.as_view(), name='profile'),
-    path('xapi/', include('backend.apps.xapi.urls'), name='xapi'),
-    path('', async_dashboard_view, name='dashboard'),
-    path('dashboard/', async_dashboard_view, name='dashboard'),
-    path('api/', include('backend.ahs_api.urls'), name='api'),
-    path('api-auth/', include('rest_framework.urls')),
+    path('accounts/signup/', signup_view, name='signup'),
+    path('accounts/login/', login_view, name='login'),
+    path('test/', default_view, name='test'),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('dashboard/', default_view, name='dashboard'),
+    path('settings/', default_view, name='settings'),
+    path('', default_view, name='default'),
 ]
 

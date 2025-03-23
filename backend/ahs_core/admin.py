@@ -6,7 +6,6 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, Permission
 from django.contrib.sessions.models import Session
 
-from backend.ahs_core.forms import SignUpForm
 from backend.ahs_core.models.apps import App
 
 User = get_user_model()
@@ -38,7 +37,6 @@ class PermissionAdmin(ModelAdmin):
 
 @admin.register(User)
 class AHSUserAdmin(UserAdmin):
-    add_form = SignUpForm
     model = User
 
     add_fieldsets = UserAdmin.add_fieldsets + (

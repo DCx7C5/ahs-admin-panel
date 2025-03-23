@@ -44,8 +44,11 @@ class CmdMapper:
             details. Throws a ValueError if the app is not found in the registered
             `apps` set.
     """
-    apps: Set[str] = {app.split(".")[1] for app in settings.INSTALLED_APPS if app.startswith('backend')}
-
+    apps: Set[str] = {
+        app.split(".")[1]
+        for app in settings.INSTALLED_APPS
+        if app.startswith('backend') and "." in app
+    }
     def __init__(self):
         self.callbacks: Dict[str, str | List | Dict | None] = {}
 
