@@ -8,7 +8,7 @@ const AuthProtectedRoutes = () => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("login/", { replace: true });
+      navigate("accounts/login/", { replace: true });
     }
   }, []);
 
