@@ -378,3 +378,4 @@ root.private.key
 root.public.key
 .runserverahs_session
 .ahs_session
+/frontend/package-lock.json
