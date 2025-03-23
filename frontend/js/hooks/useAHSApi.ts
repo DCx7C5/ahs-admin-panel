@@ -2,7 +2,7 @@ import axios, {AxiosResponse} from "axios";
 import {useCallback, useState} from "react";
 
 
-interface AHSApi {
+export interface apiClient {
   get: (endpoint: string, requestData?: any, config?: any) => Promise<any>;
   post: (endpoint: string, requestData?: any, config?: any) => Promise<any>;
   isLoading: boolean;
@@ -12,7 +12,7 @@ interface AHSApi {
 
 
 
-export const useAHSApi = (): AHSApi => {
+export const useAHSApi = (): apiClient => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [data, setData] = useState({});
