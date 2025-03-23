@@ -22,17 +22,17 @@ interface DataProviderProps {
 
 
 export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
-  const [isSuperUser, setIsSuperUser] = useState<boolean>(false);
   const apiCli = useAHSApi();
   const {isAuthenticated} = useAHSAuthentication(apiCli)
   const cryptoCli = useCryptography();
-  //const {token, addTokenPayload} = useAHSToken(cryptoCli);
+  const [isSuperUser, setIsSuperUser] = useState<boolean>(false);
+    //const {token, addTokenPayload} = useAHSToken(cryptoCli);
 
   useEffect(() => {
     console.log("DataProvider | Init | Mounting component")
 
     return () => {
-        console.log("DataProvider | Unmounting, disconnecting socket")
+        if (apiCli && cryptoCli) console.log("DataProvider | Unmounting, disconnecting socket")
     }
   }, []);
 

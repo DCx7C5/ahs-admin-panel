@@ -14,6 +14,7 @@ export interface cryptoClient {
     decrypt: (encryptedPayload: string) => Promise<string>,
     sign: (data: (ArrayBuffer | ArrayBufferView)) => Promise<null | string>,
     verify: (data: (ArrayBuffer | ArrayBufferView), signature: ArrayBuffer) => Promise<boolean>,
+    keysGenerated: boolean,
     cryptoKeyToArrayBufferFromJWK: (key: CryptoKey) => Promise<ArrayBuffer>,
     cryptoKeyToArrayBuffer: (key: CryptoKey) => Promise<ArrayBuffer>,
 }
@@ -27,6 +28,7 @@ export interface KeyRecord {
 export const useCryptography = (): cryptoClient  => {
     const [keysGenerated, setKeysGenerated] = useState<boolean>(false);
     const [database, setDatabase] = useState<IDBPDatabase | null>(null);
+    const dbInitialized = useRef<boolean>(false);
     const {size, kdfHash, kdfIterations} = useRef({
         size: hex2ab(orderHex).byteLength * 8,
         kdfHash: 'SHA-256',
@@ -34,13 +36,18 @@ export const useCryptography = (): cryptoClient  => {
     }).current
 
     useEffect(() => {
-      initDatabase().then(r => console.log("Initialized indexedDB..."));
+      if (!dbInitialized.current) {
+        initDatabase().then(r => {
+          console.log('Initialized indexedDB...');
+        });
+        dbInitialized.current = true;
+      }
       if (!keysGenerated) {
 
       }
 
       return () => {
-          deleteDatabase().then(r => console.log("Deleted indexedDB..."));
+          deleteDatabase().then(r => keysGenerated && console.log("Deleted indexedDB..."));
           setKeysGenerated(false)
       }
     }, []);
@@ -338,6 +345,7 @@ export const useCryptography = (): cryptoClient  => {
         decrypt,
         sign,
         verify,
+        keysGenerated,
         cryptoKeyToArrayBuffer,
         cryptoKeyToArrayBufferFromJWK,
     };
