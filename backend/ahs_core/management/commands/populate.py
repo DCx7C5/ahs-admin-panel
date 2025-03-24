@@ -8,7 +8,6 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import get_user_model
-from django.contrib.auth.management.commands.createsuperuser import Command as CreateSuperuserCommand
 from django.core.management.commands.check import Command as CheckCommand
 from django.core.management.commands.loaddata import Command as LoadDataCommand
 
@@ -122,7 +121,6 @@ class Command(BaseCommand):
         try:
             # Step 0: Systemcheck
             CheckCommand().run_from_argv(argv=["manage.py", "check"])
-            CreateSuperuserCommand().run_from_argv(argv=["manage.py", "createsuperuser"])
             self.populate_workspace_table()
             self.populate_ipaddress_table()
             self.populate_bookmarksprofile_table()
