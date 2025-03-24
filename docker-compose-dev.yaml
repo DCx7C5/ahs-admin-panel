@@ -17,7 +17,7 @@ services:
       - "5433:5432"  # only for IDE
     volumes:
       - postgres-data:/var/lib/postgresql/data/
-      - /tmp/.ahs:/var/run/postgresql/
+      - ./docker/.sockets:/var/run/postgresql/
 
   node:
     build:
@@ -48,7 +48,7 @@ services:
     tty: true
     user: "999:1000"
     volumes:
-      - /tmp/.ahs:/tmp/redis/
+      - ./docker/.sockets:/tmp/redis/
       - redis-data:/var/lib/redis/
 
 volumes:

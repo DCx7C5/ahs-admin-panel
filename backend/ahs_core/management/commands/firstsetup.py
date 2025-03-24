@@ -1,23 +1,22 @@
 import stat
 import os.path
-from pathlib import Path
+import venv
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
-from django.contrib.auth.management.commands.createsuperuser import Command as CreateSuCommand
 
 PROJECT_DIR = settings.BASE_DIR
 
 
 
 def _create_socket_files():
-    socket_dir = Path('/tmp') / '.ahs'
+    socket_dir = PROJECT_DIR / 'docker' / '.sockets'
     if socket_dir.exists():
-        socket_dir.unlink()
+        socket_dir.rmdir()
 
-    socket_dir.mkdir(mode=0o770)
+    socket_dir.mkdir(0o770)
     socket_dir.chmod(0o770)
 
     psql_socket_file = socket_dir / '.s.PGSQL.5432'
@@ -40,6 +39,12 @@ def _create_socket_files():
     os.chown(psql_socket_file,1000, 1000)
     os.chmod(redis_socket_file, 0o770)
     os.chmod(psql_socket_file, 0o770)
+
+
+def create_venv_directory():
+    venv_dir = PROJECT_DIR / '.venv'
+    venv.create(venv_dir, with_pip=True)
+
 
 
 class Command(BaseCommand):
@@ -71,7 +76,5 @@ class Command(BaseCommand):
         if dev_env:
             self.stdout.write(self.style.SUCCESS('Setting up AHS development server...'))
             _create_socket_files()
-            CreateSuCommand().run_from_argv(['manage.py', 'createsuperuser'])
         elif prod_env:
             self.stdout.write(self.style.SUCCESS('Setting up AHS production server...'))
-            CreateSuCommand().run_from_argv(['manage.py', 'createsuperuser'])
