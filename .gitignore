@@ -379,3 +379,4 @@ root.public.key
 .runserverahs_session
 .ahs_session
 /frontend/package-lock.json
+/docker/.sockets/.s.PGSQL.5432.lock
