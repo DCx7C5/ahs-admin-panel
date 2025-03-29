@@ -8,29 +8,19 @@ from django.shortcuts import render
 
 logger = logging.getLogger(__name__)
 
-
 @login_not_required
-async def signup_view(request):
-
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        publicKey = request.POST.get('publicKey')
-        rotate_token(request)
-
-    else:
-        logger.debug(f"you visited signup")
-    return render(request, "base.html", {})
-
-
-@login_not_required
-async def login_view(request):
-    context = {}
-
-    response = render(request, "base.html",context)
-    return response
-
-
 async def default_view(request):
-    context = {}
-    response = render(request, "base.html",context)
-    return response
+
+    is_authenticated = request.user.is_authenticated if hasattr(request, 'user') else False
+
+    initial_data = {
+        'isAuthenticated': is_authenticated,
+        'publicKey': "TEST",
+    }
+    if is_authenticated:
+        initial_data['user'] = {
+            'username': request.user.username,
+            'isSuperUser': request.user.is_superuser,
+        }
+
+    return render(request, "base.html", initial_data)
