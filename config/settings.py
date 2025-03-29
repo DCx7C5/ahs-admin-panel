@@ -1,4 +1,5 @@
 import os
+import secrets
 from _socket import gethostbyname_ex, gethostname
 from datetime import timedelta
 from os import environ
@@ -15,6 +16,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = environ.get('SECRET_KEY')
+RUNTIME_SECRET_KEY = secrets.token_urlsafe(48)
 ENCRYPTION_KEY = environ.get('ENCRYPTION_KEY')
 
 INSTALLED_APPS = [
@@ -94,16 +96,16 @@ MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'backend.ahs_core.middleware.AHSTokenMiddleware',
+    'backend.ahs_core.middleware.AHSAuthenticationMiddleware',
     'backend.ahs_core.middleware.AHSAdminPanelMiddleware',
-    'backend.ahs_core.middleware.AHSSessionMiddleware',
-    #'django.contrib.auth.middleware.LoginRequiredMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 # We don't use built-in SessionMiddleware, AuthenticationMiddleware and MessagesMiddleware,
-# which throws error on startup
+# which throw error on startup when missing in MIDDLEWARE list.
 SILENCED_SYSTEM_CHECKS = [
     'admin.E410',
     'admin.E408',
@@ -149,7 +151,6 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',  # Enable Browsable API
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
@@ -219,8 +220,14 @@ AUTH_USER_MODEL = "ahs_core.AHSUser"
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
-AHS_SESSION_ENGINE = 'backend.ahs_core.engines'
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_ENGINE_AHS = 'backend.ahs_core.engines'
+SESSION_MODEL_AHS = "ahs_core.AHSSession"
+SESSION_TOKEN_EXPIRATION_TIME = 60 * 60 * 24 * 7  # 7 days
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -308,3 +315,6 @@ if DEBUG:
     ipl = [ip[: ip.rfind(".")] + ".1" for ip in ips]
     INTERNAL_IPS += ipl
     ALLOWED_HOSTS += [hostname, '0.0.0.0', 'localhost'] + ipl
+    REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] += (
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    )
