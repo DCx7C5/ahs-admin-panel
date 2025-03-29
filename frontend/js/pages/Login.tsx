@@ -2,25 +2,33 @@ import React, {use, useActionState, useEffect, useOptimistic} from "react";
 import { DataContext } from "../components/DataProvider";
 import { useNavigate } from "react-router-dom";
 import "@/../css/register.scss";
+import {base64UrlEncode} from "../components/utils";
+import {apiClient} from "../hooks/useAHSApi";
 
 
 export const Login: React.FC = () => {
-  const { isAuthenticated, apiClient, cryptoClient } = use(DataContext);
+  const { isAuthenticated, cryptoCli } = use(DataContext);
+  const apiCli: apiClient = use(DataContext)?.apiCli;
   const navigate = useNavigate();
 
   const [formState, formAction, isPending] = useActionState(
     async (prevState, formData) => {
       const username = formData.get("username") as string;
-      const password = formData.get("password") as string;
-
-      const salt = cryptoClient.generateRandomSalt() as Uint8Array;
+      const salt = cryptoCli.generateRandomSalt()
+      const privateKey = await cryptoCli.generateKeyFromPassword(
+          formData.get("password") as string,
+          salt,
+          'pbkdf2'
+      );
+      const publicKey = await cryptoCli.getPublicKeyFromDerivedPasswordKey(privateKey);
+      const urlSafePublicKey = base64UrlEncode(publicKey);
 
       try {
-        const response = await apiClient.post("api/login/", {
+        const response = await apiCli.post("api/login/", {
           username: username,
-          publicKey: password
+          publicKey: urlSafePublicKey,
         });
-        console.log(response)
+        console.log('test',response)
         if (response.status === 200) {
           localStorage.setItem("access", response.data.access);
           //window.location.href = "/"; // Redirect on success
