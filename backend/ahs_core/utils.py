@@ -1,3 +1,4 @@
+import base64
 import inspect
 import logging
 import os
@@ -6,6 +7,7 @@ import subprocess
 
 from time import sleep
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.management import BaseCommand
 from django.utils import timezone
@@ -328,3 +330,54 @@ class Docker:
         if cls._cli is not None:
             cls._cli.close()
             cls._cli = None
+
+
+async def aencode_b64urlsafe(data, remove_padding=True):
+    """
+    Asynchronously encode data using URL-safe base64 encoding.
+
+    Args:
+        data: The data to encode (string or bytes).
+        remove_padding: Whether to remove padding characters from the encoded string.
+    Returns:
+        URL-safe base64 encoded string without padding.
+    """
+    if isinstance(data, str):
+        data = data.encode('ascii')
+
+    encoded = await sync_to_async(base64.urlsafe_b64encode)(data)
+    # Remove padding characters for URL-safety
+    if remove_padding:
+        # Remove padding characters
+        encoded = encoded.rstrip(b'=')
+
+    return encoded.decode('ascii')
+
+
+async def adecode_b64urlsafe(data: bytes | str) -> bytes | str | None:
+    """
+    Asynchronously decode a URL-safe base64 encoded string, handling missing padding.
+
+    Args:
+        data: The URL-safe base64 encoded string to decode.
+    Returns:
+        Decoded bytes or None if error occurs.
+    """
+    str_out = False
+    if isinstance(data, str):
+        str_out = True
+        data = data.encode('ascii')
+
+    try:
+        # Add padding back if needed
+        padding_needed = len(data) % 4
+        if padding_needed > 0:
+            data += '=' * (4 - padding_needed)
+
+        # Decode
+        dec_data = await sync_to_async(base64.urlsafe_b64decode)(data)
+        if str_out:
+            return dec_data.decode('ascii')
+        return dec_data
+    except Exception as e:
+        raise Exception(f"Error decoding base64 string: {e}")
