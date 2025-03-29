@@ -55,6 +55,7 @@ export const Root = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Layout />}>
+              <Route path="test2/" element={<Test />} />
               <Route path="accounts/login/" element={<Login />} />
               <Route path="accounts/signup/" element={<SignUp />} />
               <Route element={<AuthProtectedRoutes />}>
@@ -62,7 +63,6 @@ export const Root = () => {
                 <Route path="test/" element={<Test />} />
                 <Route path="dashboard/" element={<DashBoard />} />
                 <Route path="settings/" element={<Settings />} />
-                <Route path="*" element={<Test />} />
               </Route>
             </Route>
           </Routes>
