@@ -32,9 +32,11 @@
 </head>
 {% block full_body %}
 <body class="">
-    <div id="root">
-        {% render_bundle 'index' 'js' %}
-    </div>
+    {% block content %}
+        <div id="root">
+            {% render_bundle 'index' 'js' %}
+        </div>
+    {% endblock content %}
 {# -- scripts and other body elements here -- #}
 {% block javascript_bottom %}
 {% block js %}{% endblock %}
