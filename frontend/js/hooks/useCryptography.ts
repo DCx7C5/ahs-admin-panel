@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from "react";
-import {ab2hex, base64UrlEncode, hex2ab, str2ab} from "../components/utils";
+import {ab2hex, base64UrlEncode, hex2ab} from "../components/utils";
 import {IDBPDatabase, openDB} from "idb";
 
 const curve = 'P-521'
@@ -15,6 +15,7 @@ export interface cryptoClient {
     sign: (data: (ArrayBuffer | ArrayBufferView)) => Promise<null | string>,
     verify: (data: (ArrayBuffer | ArrayBufferView), signature: ArrayBuffer) => Promise<boolean>,
     generateRandomSalt: () => string,
+    getOrCreateSalt: () => Promise<string | null>,
     generateKeyFromPassword: (password: string, salt: string, type: "argon" | "pbkdf2") => Promise<CryptoKey>,
     getPublicKeyFromDerivedPasswordKey: (derivedKey: CryptoKey) => Promise<ArrayBuffer>,
     keysGenerated: boolean,
@@ -68,6 +69,15 @@ export const useCryptography = (): cryptoClient  => {
         if (!database) return
         await database.deleteObjectStore('ahs');
     }
+
+    const getOrCreateSalt = useCallback(async () => {
+        const storSalt = await localStorage.getItem('ahssalt')
+        if (!storSalt) {
+            await localStorage.setItem('ahssalt', generateRandomSalt())
+            return localStorage.getItem('ahssalt');
+        }
+        return storSalt
+    }, [])
 
     const storeToDb = async (keyType: string, key: CryptoKey): Promise<void> => {
         if (!database) throw new Error("Database not initialized");
@@ -359,6 +369,7 @@ export const useCryptography = (): cryptoClient  => {
         verify,
         keysGenerated,
         generateRandomSalt,
+        getOrCreateSalt,
         generateKeyFromPassword,
         getPublicKeyFromDerivedPasswordKey,
         cryptoKeyToArrayBuffer,
