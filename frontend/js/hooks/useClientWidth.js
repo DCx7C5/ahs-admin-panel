@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-function useClientWidth(ref) {
+const useClientWidth = (ref) => {
   const [clientWidth, setClientWidth] = useState(100);
 
   useEffect(() => {
