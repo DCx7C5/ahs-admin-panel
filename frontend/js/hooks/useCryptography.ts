@@ -14,6 +14,9 @@ export interface cryptoClient {
     decrypt: (encryptedPayload: string) => Promise<string>,
     sign: (data: (ArrayBuffer | ArrayBufferView)) => Promise<null | string>,
     verify: (data: (ArrayBuffer | ArrayBufferView), signature: ArrayBuffer) => Promise<boolean>,
+    generateRandomSalt: () => string,
+    generateKeyFromPassword: (password: string, salt: string, type: "argon" | "pbkdf2") => Promise<CryptoKey>,
+    getPublicKeyFromDerivedPasswordKey: (derivedKey: CryptoKey) => Promise<ArrayBuffer>,
     keysGenerated: boolean,
     cryptoKeyToArrayBufferFromJWK: (key: CryptoKey) => Promise<ArrayBuffer>,
     cryptoKeyToArrayBuffer: (key: CryptoKey) => Promise<ArrayBuffer>,
@@ -253,13 +256,12 @@ export const useCryptography = (): cryptoClient  => {
     async function generateKeyFromPassword(password: string, salt: string, type: "argon" | "pbkdf2" = "pbkdf2") {
         const textEncoder = new TextEncoder();
         try {
-            console.log("passphraseAB", password);
             const saltAB = textEncoder.encode(salt);
             const passphraseCK = await crypto.subtle.importKey(
                 'raw', textEncoder.encode(password),
                 { name: 'PBKDF2' },
                 false,
-                ['deriveBits']
+                ['deriveBits', 'deriveKey']
             );
             const rawPrivateEcKeyAB = await deriveRawPrivate(saltAB, passphraseCK);
             const pkcs8nopubAB = new Uint8Array([ ...hex2ab(prefixHex), ...new Uint8Array(rawPrivateEcKeyAB)])
@@ -276,16 +278,13 @@ export const useCryptography = (): cryptoClient  => {
 
 
     async function deriveRawPrivate(salt: ArrayBuffer, passphraseCK: CryptoKey){
-        console.log("deriveRawPrivate", salt, passphraseCK);
         const algo = { name: 'PBKDF2', salt: salt, iterations: kdfIterations, hash: kdfHash }
         const rawKeyAB = await crypto.subtle.deriveBits(algo, passphraseCK, size)
            const nBI = BigInt('0x' + orderHex);
            let rawKeyBI = BigInt('0x' + ab2hex(rawKeyAB));
-           console.log("Initial rawKeyBI:", rawKeyBI); // Debugging step
 
            if (rawKeyBI >= nBI) {
                rawKeyBI = rawKeyBI % nBI;
-               console.log("Adjusted rawKeyBI:", rawKeyBI); // Ensure this doesn't keep happening
            }
 
            if (rawKeyBI < BigInt(0)) {
@@ -294,7 +293,6 @@ export const useCryptography = (): cryptoClient  => {
         const rawKeyHex = rawKeyBI.toString(16).padStart(2*(size/8), '0') // if shorter, pad with 0x00 to fixed size
         return hex2ab(rawKeyHex)
     }
-
 
     async function deriveSharedSecret(privateKey: CryptoKey, foreignPublicKey: CryptoKey): Promise<ArrayBuffer> {
         return await crypto.subtle.deriveBits(
@@ -307,17 +305,32 @@ export const useCryptography = (): cryptoClient  => {
         );
     }
 
-    async function getPublicFromPrivate(privateKeyCK: CryptoKey){
-        const publicKey = await crypto.subtle.exportKey('spki', privateKeyCK)
+    async function getPublicKeyFromDerivedPasswordKey(derivedKey: CryptoKey): Promise<ArrayBuffer> {
+    if (!derivedKey) {
+        throw new Error("Derived key cannot be null");
+    }
 
-        const algo = { name: 'ECDH', namedCurve: curve }
-        return
+    // Algorithm definition to generate key pair or public key
+    const algo = { name: 'ECDH', namedCurve: curve };
+
+    try {
+            // Create a new key pair using the derived key as input
+            const keyPair = await crypto.subtle.generateKey(algo, true, ["deriveKey"]);
+
+            // Export the public key in SPKI format
+            const publicKey = await crypto.subtle.exportKey('spki', keyPair.publicKey);
+
+            return publicKey;
+        } catch (error) {
+            console.error("Error deriving public key:", error);
+            throw error;
+        }
     }
 
     async function cryptoKeyToArrayBuffer(key: CryptoKey): Promise<ArrayBuffer> {
+      const format = key.type === 'private' ? 'pkcs8' : 'spki';
       try {
-        // Export the CryptoKey as raw data
-        return  await crypto.subtle.exportKey("raw", key);
+        return  await window.crypto.subtle.exportKey(format, key);
       } catch (error) {
         console.error("Failed to export CryptoKey to ArrayBuffer:", error);
         throw error;
@@ -339,13 +352,15 @@ export const useCryptography = (): cryptoClient  => {
       }
     }
 
-
     return {
         encrypt,
         decrypt,
         sign,
         verify,
         keysGenerated,
+        generateRandomSalt,
+        generateKeyFromPassword,
+        getPublicKeyFromDerivedPasswordKey,
         cryptoKeyToArrayBuffer,
         cryptoKeyToArrayBufferFromJWK,
     };
