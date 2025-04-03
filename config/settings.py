@@ -39,10 +39,9 @@ INSTALLED_APPS = [
     # django rest api
     'rest_framework',
     'adrf',
-
     'corsheaders',
 
-    # webpack loader
+    # webpack
     'webpack_loader',
 
     # Toolbar Plugins/Modules
@@ -52,7 +51,6 @@ INSTALLED_APPS = [
     # Core Apps
 
     'backend.ahs_api',
-
     'backend.ahs_network',
     'backend.ahs_network.domains',
     'backend.ahs_network.hosts',
@@ -210,7 +208,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_REDIRECT_URL = 'ahs_core:default'
+LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'accounts/login'
 LOGIN_URL = 'accounts/login'
 LOGOUT_URL = 'accounts/logout'
@@ -227,6 +225,10 @@ SESSION_TOKEN_EXPIRATION_TIME = 60 * 60 * 24 * 7  # 7 days
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+SESSION_COOKIE_PATH = '/admin'
+SESSION_COOKIE_PATH_AHS = '/'
+SESSION_COOKIE_NAME_AHS = 'ahssessionid'
 
 
 PASSWORD_HASHERS = [
