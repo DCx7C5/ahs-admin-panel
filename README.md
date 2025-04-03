@@ -5,6 +5,8 @@
 ![Node.js](https://img.shields.io/badge/Node.js-18.x-green?logo=node.js)  
 ![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python)  
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)  
+![React](https://img.shields.io/badge/React-19.x-cyan?logo=react)  
+![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?logo=typescript)  
 
 ---
 
