@@ -1,5 +1,6 @@
 import base64
 import inspect
+import json
 import logging
 import os
 import shutil
@@ -381,3 +382,30 @@ async def adecode_b64urlsafe(data: bytes | str) -> bytes | str | None:
         return dec_data
     except Exception as e:
         raise Exception(f"Error decoding base64 string: {e}")
+
+
+def json_decode(data: str) -> dict:
+    """
+    Decode a JSON string into a Python dictionary.
+
+    Args:
+        data: The JSON string to decode.
+    Returns:
+        Decoded dictionary.
+    """
+    try:
+        return json.loads(data)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON data: {e}") from e
+
+
+async def ajson_decode(data: str) -> dict:
+    """
+    Asynchronously decode a JSON string into a Python dictionary.
+
+    Args:
+        data: The JSON string to decode.
+    Returns:
+        Decoded dictionary.
+    """
+    return await sync_to_async(json_decode)(data)
