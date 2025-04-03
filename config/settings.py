@@ -93,12 +93,12 @@ DATABASES = {
 }
 
 MIDDLEWARE = [
+    'backend.ahs_core.middleware.AsyncRequestLoggerMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'backend.ahs_core.middleware.AHSTokenMiddleware',
-    'backend.ahs_core.middleware.AHSAuthenticationMiddleware',
-    'backend.ahs_core.middleware.AHSAdminPanelMiddleware',
+    'backend.ahs_core.middleware.SessionAuthMsgsMiddleware',
+    'backend.ahs_core.middleware.AHSMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
