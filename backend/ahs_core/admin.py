@@ -6,6 +6,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, Permission
 from django.contrib.sessions.models import Session
 
+from backend.ahs_core.models import AHSSession
 from backend.ahs_core.models.apps import App
 
 User = get_user_model()
@@ -20,6 +21,11 @@ class AppModelAdmin(ModelAdmin):
 @admin.register(Session)
 class SessionAdmin(ModelAdmin):
     list_display = ['session_key', 'session_data', 'expire_date']
+
+
+@admin.register(AHSSession)
+class AHSSessionAdmin(ModelAdmin):
+    list_display = ['session_key', 'expire_date']
 
 
 @admin.register(LogEntry)
@@ -38,10 +44,16 @@ class PermissionAdmin(ModelAdmin):
 @admin.register(User)
 class AHSUserAdmin(UserAdmin):
     model = User
+    fieldsets = tuple(tuple(
+        (section[0], {"fields": tuple(field if field != "email" else "public_key" for field in section[1]["fields"])})
+        for
+        section in UserAdmin.fieldsets))
 
     add_fieldsets = UserAdmin.add_fieldsets + (
         (None, {'fields': ('image',)}),
     )
+    list_display = tuple(field if field != "email" else "public_key" for field in UserAdmin.list_display)
+    search_fields = tuple(field if field != "email" else "public_key" for field in UserAdmin.search_fields)
     show_full_result_count = True
 
 
