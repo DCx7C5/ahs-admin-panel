@@ -1,33 +1,10 @@
-import dataclasses
-from datetime import datetime
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
-
-class AbstractBaseAHSToken(metaclass=ABCMeta):
-    __slots__ = ('header', 'payload', 'signature',
-                 '_header', '_payload', '_signature')
-
-    def __new__(cls, *args, **kwargs):
-        # Return a coroutine object
-        instance = super().__new__(cls)
-        return instance.__async_init__(*args, **kwargs)
-
-    async def __async_init__(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def __await__(self):
-        return self.__async_init__().__await__()
+from backend.ahs_core.utils import adecode_b64urlsafe, ajson_decode
 
 
 class AbstractBaseTokenSegment(metaclass=ABCMeta):
-
-    def __new__(cls, *args, **kwargs):
-        # Return a coroutine object
-        instance = super().__new__(cls)
-        return instance.__async_init__(*args, **kwargs)
-
-    async def __async_init__(self, *args, **kwargs):
-        raise NotImplementedError
+    __slots__ = ('errors', 'segment', '_segment')
 
     def __getitem__(self, key):
         """Allow dict-style access: obj['key']"""
@@ -94,17 +71,17 @@ class AbstractBaseTokenSegment(metaclass=ABCMeta):
         for key in list(self.keys()):
             delattr(self, key)
 
-    @classmethod
-    async def from_string(cls, token: str) -> "AbstractBaseTokenSegment":
-        """Create a token object from an HTTP header string"""
-        raise NotImplementedError
+    async def decode(self, enc_segment: str) -> dict:
+        """
+        Create an instance of TokenHeader from an encoded header segment.
+        """
+        data = None
+        try:
+            json_data = await adecode_b64urlsafe(enc_segment)
+            data = await ajson_decode(json_data)
+        except Exception as e:
+            self.errors.append(f"Error decoding {self.__class__.__name__} segment: {e}")
 
-    @classmethod
-    async def from_segment(cls, segment) -> "AbstractBaseTokenSegment":
-        """Create a token object from its components"""
-        raise NotImplementedError
+        return data
 
-    @classmethod
-    async def from_encoded_segment(cls, encoded_segment: str | bytes) -> "AbstractBaseAHSToken":
-        """Create a token object from an encoded segment"""
-        raise NotImplementedError
+
