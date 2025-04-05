@@ -3,9 +3,12 @@ import {DataContext} from "../DataProvider";
 import SidebarMenuItem from "./SidebarMenuItem";
 
 
+interface SidebarMenuProps {
+  children?: React.ReactNode;
+  onLinkClick?: (page: any) => void;
+}
 
-
-export const SidebarMenu = ({children, onLinkClick}) => {
+export const SidebarMenu = ({children, onLinkClick}: SidebarMenuProps) => {
   const {pages} = use(DataContext);
 
   useEffect(() => {
@@ -14,7 +17,7 @@ export const SidebarMenu = ({children, onLinkClick}) => {
 
   return <ul className="menu">
     {Array.isArray(pages) && pages.map((page, index) => (
-      page.active && <SidebarMenuItem key={index} item={page} onLinkClick={onLinkClick} />
+      page.active && <SidebarMenuItem item={page} onLinkClick={onLinkClick} />
     ))}
     {children}
   </ul>

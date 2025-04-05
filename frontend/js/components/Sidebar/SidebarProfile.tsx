@@ -1,8 +1,11 @@
 import React from "react";
 
+export interface SidebarProfileProps {
+  imagePath: string;
+  userName: string;
+}
 
-
-export const SidebarProfile = ({imagePath, userName}) => {
+export const SidebarProfile = ({imagePath, userName}: SidebarProfileProps) => {
   return (
     <>
       <div className="profile-picture">

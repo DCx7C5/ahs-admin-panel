@@ -1,7 +1,14 @@
 import React from "react";
 import {useLocation} from "react-router-dom";
 
-export const SidebarMenuItem = ({item, onLinkClick}) => {
+
+interface SidebarMenuItemProps {
+  item: any;
+  onLinkClick: () => void;
+}
+
+
+export const SidebarMenuItem = ({item, onLinkClick}: SidebarMenuItemProps) => {
   const location = useLocation();
   const currentPath = location.pathname;
 

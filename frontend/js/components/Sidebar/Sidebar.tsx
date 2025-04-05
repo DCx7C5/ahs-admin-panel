@@ -1,17 +1,17 @@
-import React, {use, useRef} from 'react';
+import React, {RefObject, use, useRef} from 'react';
 import SidebarFooter from "./SidebarFooter";
 import SidebarProfile from "./SidebarProfile";
 import SidebarMenu from "./SidebarMenu";
 import useHideElement from "../../hooks/useHideElement";
 import SidebarHeader from "./SidebarHeader";
 import SidebarBackdrop from "./SidebarBackdrop";
-import {AuthContext} from "../AuthProvider";
 import './sidebar.scss';
+import {DataContext} from "../DataProvider";
 
 
 export const Sidebar = () => {
   const sidebarRef = useRef(null);
-  const { username, image } = use(AuthContext);
+  const { username, image } = use(DataContext);
   const [isVisible, hide,, toggleVisibility] = useHideElement(
     false,'sb.show', sidebarRef
   )
