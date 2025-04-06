@@ -1,23 +1,37 @@
-import asyncio
 import base64
 import os
+from pathlib import Path
+from typing import Literal
+
 import magic
 
-from abc import ABC
-from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from os import urandom
 
 from asgiref.sync import sync_to_async
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateNumbers
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.dh import DHPublicKey
+from cryptography.hazmat.primitives.asymmetric.dsa import DSAPublicKey
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateNumbers, EllipticCurvePublicKey, SECP521R1, \
+    ECDSA
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PublicKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.x448 import X448PublicKey
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import GCM
-from cryptography.hazmat.primitives.hashes import HashAlgorithm, SHA256
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.hashes import SHA256, SHA512
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+
+from django.utils.encoding import force_bytes
+from django.utils.functional import classproperty, SimpleLazyObject
 from django.conf import settings
 
 mime = magic.Magic(mime=True)
@@ -25,31 +39,6 @@ executor = ThreadPoolExecutor()
 
 ROOT_PRIVKEY_PATH = os.getenv("ROOT_PRIVKEY_PATH", 'root.private.key')
 
-class Argon2(HashAlgorithm, ABC):
-    name = "argon2"
-    block_size = 1024
-    key_size = 512
-    _implementation = None
-
-
-class ECC:
-    default_ecc_backend: str = None
-    default_curve = None
-    loop: AbstractEventLoop = asyncio.get_event_loop()
-
-    @classmethod
-    def from_file(cls, path: os.PathLike):
-        with open(path, 'rb') as key_file:
-            buffer = key_file.read()
-            if len(buffer) == 0:
-                raise ValueError("File is empty.")
-            mtype = mime.from_buffer(buffer)
-            if mtype == "text/plain" and "PUBLIC" in buffer.decode('ascii'):
-                return deserialize_private_key_from_pem(buffer)
-            elif mtype == "application/octet-stream":
-                return deserialize_public_key_from_der(buffer)
-            else:
-                raise ValueError("Invalid key file format.")
 
 
 def get_curve_order(curve):
@@ -64,7 +53,7 @@ def get_curve_order(curve):
     return curve_orders.get(type(curve), None)
 
 
-def load_public_key_from_file(file_path: os.PathLike) -> ec.EllipticCurvePublicKey:
+def load_public_key_from_file(file_path: os.PathLike) -> None | DHPublicKey | DSAPublicKey | RSAPublicKey | EllipticCurvePublicKey | Ed25519PublicKey | Ed448PublicKey | X25519PublicKey | X448PublicKey:
 
     with open(file_path, 'rb') as key_file:
         content = key_file.read()
@@ -92,7 +81,7 @@ def load_private_key_from_file(path: os.PathLike, password: str | bytes) -> ec.E
 
 def derive_from_private_root_key(password: str | bytes):
     rootkey_path = ROOT_PRIVKEY_PATH
-    privkey = load_private_key_from_file(rootkey_path, password).private_numbers()
+    privkey = load_private_key_from_file(Path(rootkey_path), password).private_numbers()
     return derive_subkey(privkey, 0)
 
 
@@ -111,8 +100,7 @@ def save_public_key_to_file(public_key: ec.EllipticCurvePublicKey, path: os.Path
 
 
 def generate_private_key() -> ec.EllipticCurvePrivateKey:
-    def_curve = ECC.default_curve
-    return ec.generate_private_key(curve=ECC.default_curve())
+    return ec.generate_private_key(curve=ECC.default_curve)
 
 
 def generate_public_key(private_key: ec.EllipticCurvePrivateKey) -> ec.EllipticCurvePublicKey:
@@ -243,7 +231,7 @@ def derive_subkey(private_key: EllipticCurvePrivateNumbers, index: int, curve=ec
 
     :param private_key: Parent ECC private key (integer or similar format).
     :param index: Integer index for subkey derivation.
-    :param curve: Elliptic curve to use (default: SECP256R1).
+    :param curve: Elliptic curve to use (default: SECP521R1).
     :return: Derived private key.
     """
     private_key_int = private_key.private_value
@@ -280,7 +268,7 @@ def get_root_private_key(password: str) -> ec.EllipticCurvePrivateKey | None:
         raise ValueError("Password is required.")
     if isinstance(password, str):
         password = password.encode('ascii')
-    return load_private_key_from_file(ROOT_PRIVKEY_PATH, password=password)
+    return load_private_key_from_file(Path(ROOT_PRIVKEY_PATH), password=password)
 
 
 async def agenerate_private_key() -> ec.EllipticCurvePrivateKey:
@@ -325,4 +313,156 @@ async def adecrypt(encrypted_data, private_key, public_key):
 
 
 async def aderive_subkey(master_private_key: ec.EllipticCurvePrivateKey, index: int):
-    return await sync_to_async(derive_subkey)(master_private_key, index)
+    return await sync_to_async(derive_subkey)(master_private_key.private_numbers(), index, ec.SECP521R1())
+
+
+def derive_key_from_string(input_string, salt, iterations: int = 500000) -> ec.EllipticCurvePrivateKey:
+    """
+    Derive an EllipticCurvePrivateKey from a passphrase and salt.
+
+    :param input_string: The passphrase to generate the key deterministically.
+    :param salt: A unique cryptographically secure salt (16 bytes minimum recommended).
+    :param iterations: The number of iterations for the key derivation function.
+    :return: An EllipticCurvePrivateKey instance derived from the string.
+    """
+    if len(salt) < 16:
+        raise ValueError("Salt must be at least 16 bytes.")
+
+    # Convert input string to bytes
+    input_bytes = force_bytes(input_string)
+    salt = force_bytes(salt)
+
+    # Derive a fixed-length key (e.g., 64 bytes) using PBKDF2
+    kdf = PBKDF2HMAC(
+        algorithm=SHA512(),
+        length=64,  # 512-bit key
+        salt=salt,
+        iterations=iterations,
+        backend=default_backend()
+    )
+    private_key_bytes = kdf.derive(input_bytes)
+
+    # Convert the derived bytes into an integer to match EC private key requirements
+    private_key_int = int.from_bytes(private_key_bytes, byteorder="big")
+
+    # Generate an EllipticCurvePrivateKey from the derived bytes, ensuring its valid
+    private_key = ec.derive_private_key(
+        private_key_int % ec.SECP521R1().key_size,  # Ensure the private key is within the curve's range
+        curve=ec.SECP521R1(),
+        backend=default_backend()
+    )
+
+    return private_key
+
+async def aderive_key_from_string(input_string: str, salt: bytes, iterations: int = 100000) -> ec.EllipticCurvePrivateKey:
+    return await sync_to_async(derive_key_from_string)(input_string, salt, iterations)
+
+
+def convert(
+        key: ec.EllipticCurvePrivateKey | ec.EllipticCurvePublicKey | str | bytes | int | os.PathLike,
+        convert_to: Literal['pem', 'der', 'x962', 'int', 'class'] = "bytes"
+):
+    if isinstance(key, str) and os.path.exists(os.path.abspath(key)):
+        with open(key, 'rb') as key_file:
+            key_data = key_file.read()
+            # Attempt to deserialize public or private keys
+            if b'PUBLIC' in key_data:
+                try:
+                    key = deserialize_public_key_from_pem(key_data)
+                except Exception:
+                    try:
+                        key = deserialize_public_key_from_der(key_data)
+                    except Exception as e:
+                        raise ValueError(f"Invalid key file format: {e}")
+            elif b'PRIVATE' in key_data:
+                try:
+                    key = deserialize_private_key_from_pem(key_data)
+                except Exception:
+                    try:
+                        key = deserialize_private_key_from_der(key_data)
+                    except Exception as e:
+                        raise ValueError(f"Invalid key file format: {e}")
+
+    if isinstance(key, (ec.EllipticCurvePrivateKey, ec.EllipticCurvePublicKey)):
+        if convert_to == 'pem':
+            if isinstance(key, ec.EllipticCurvePrivateKey):
+                return serialize_private_key_to_pem(key)
+            else:
+                return serialize_public_key_to_pem(key)
+        elif convert_to == 'der':
+            if isinstance(key, ec.EllipticCurvePrivateKey):
+                return serialize_private_key_to_der(key)
+            else:
+                return serialize_public_key_to_der(key)
+        elif convert_to == 'x962' and isinstance(key, ec.EllipticCurvePublicKey):
+            return serialize_public_key_to_x962(key)
+        elif convert_to == 'x962' and isinstance(key, ec.EllipticCurvePrivateKey):
+            raise ValueError("Private key cannot be serialized to X9.62 format.")
+
+        elif convert_to == 'int' and isinstance(key, ec.EllipticCurvePrivateKey):
+            return key.private_numbers().private_value
+        elif convert_to == 'class':
+            return key  # Return the object itself for 'class' conversion
+    elif isinstance(key, bytes):
+        return key
+    elif isinstance(key, str):
+        return force_bytes(key)
+    elif isinstance(key, int):
+        return key.to_bytes((key.bit_length() + 7) // 8, 'big')
+
+    raise ValueError(f"Invalid key type or conversion format: key={type(key)}, convert_to={convert_to}")
+
+
+async def aconvert(
+        key: ec.EllipticCurvePrivateKey | ec.EllipticCurvePublicKey | str | bytes | int | os.PathLike,
+        convert_to: Literal['pem', 'der', 'x962', 'int'] = "bytes"
+):
+    return await sync_to_async(convert)(key, convert_to)
+
+
+
+class ECC:
+
+    default_curve = SECP521R1()
+    default_sign_algorithm = ECDSA(SHA512())
+    default_hash_algorithm = SHA512()
+
+    _root_private_key: ec.EllipticCurvePrivateKey | None = None
+    _root_public_key: ec.EllipticCurvePublicKey | None = None
+
+    @classproperty
+    def root_private_key(cls):  # noqa
+        if cls._root_private_key is None:
+            cls._load_keys()
+        return cls._root_private_key
+
+    @classproperty
+    def root_public_key(cls):  # noqa
+        if cls._root_public_key is None:
+            cls._load_keys()
+        return cls._root_public_key
+
+    @classmethod
+    def _load_keys(cls):
+        cls._root_private_key = SimpleLazyObject(lambda: derive_key_from_string(settings.RUNTIME_SECRET_KEY, settings.SECRET_KEY.encode()))  # noqa
+        cls._root_public_key = cls._root_private_key.public_key()
+
+    @classmethod
+    def sign(cls, data):
+        return cls._root_private_key.sign(data, cls.default_sign_algorithm)
+
+    @classmethod
+    async def asign(cls, data):
+        return await sync_to_async(cls.sign)(data)
+
+    @classmethod
+    def verify(cls, data, signature):
+        return cls._root_public_key.verify(signature, data, cls.default_sign_algorithm)
+
+    @classmethod
+    async def averify(cls, data, signature):
+        return await sync_to_async(cls.verify)(signature, data)
+
+    @classmethod
+    def get_shared_secret(cls, client_public_key: EllipticCurvePublicKey):
+        return cls._root_private_key.exchange(ec.ECDH(), client_public_key).decode('ascii')
