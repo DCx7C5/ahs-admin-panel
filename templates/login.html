@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load render_bundle from webpack_loader %}
+{% block title %}Log In{% endblock %}
+{% block extra_head %}
+    <script>
+        window.__AHS_DATA__ = {
+          publicKey: "{{ public_key }}",
+        }
+    </script>
+{% endblock %}
+{% block content %}
+    <div id="root">
+        {% render_bundle 'index' 'js' %}
+    </div>
+{% endblock content %}
+{% block footer %}{% endblock %}
