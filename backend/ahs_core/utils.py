@@ -5,16 +5,22 @@ import logging
 import os
 import shutil
 import subprocess
+from importlib import import_module
 
 from time import sleep
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import BaseCommand
 from django.utils import timezone
+from django.utils.functional import SimpleLazyObject
 from docker import from_env, DockerClient
 
 from config.settings import BASE_DIR, DEBUG
+
+from django.apps import apps as django_apps
+from django.utils.module_loading import import_string
 
 logger = logging.getLogger(__name__)
 logging.getLogger('docker.utils.config').setLevel(logging.INFO)
@@ -409,3 +415,38 @@ async def ajson_decode(data: str) -> dict:
         Decoded dictionary.
     """
     return await sync_to_async(json_decode)(data)
+
+def get_ahs_session_store():
+    """
+    Return the AHS session engine.
+    """
+    return import_module(settings.SESSION_ENGINE_AHS).SessionStore
+
+
+def get_ahs_session_model():
+    """
+    Return the AHS session model.
+    """
+
+    try:
+        return django_apps.get_model(
+            settings.SESSION_MODEL_AHS,
+            require_ready=False
+        )
+    except ValueError:
+        raise ImproperlyConfigured(
+            "SESSION_MODEL_AHS must be of the form 'app_label.model_name'"
+        )
+    except LookupError:
+        raise ImproperlyConfigured(
+            "SESSION_MODEL_AHS refers to model '%s' that has not been installed"
+            % settings.AUTH_USER_MODEL
+        )
+
+def get_crypto_backend():
+    try:
+        crypto_cfg = settings.CRYPTO_BACKEND
+        _cls = import_string(f'backend.ahs_core.{crypto_cfg.lower()}.{crypto_cfg.upper()}')
+        return SimpleLazyObject(lambda: _cls())
+    except AttributeError:
+        raise ImproperlyConfigured("CRYPTO_BACKEND must be set")
