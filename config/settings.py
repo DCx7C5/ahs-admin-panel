@@ -16,8 +16,10 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = environ.get('SECRET_KEY')
+
 RUNTIME_SECRET_KEY = secrets.token_urlsafe(48)
-ENCRYPTION_KEY = environ.get('ENCRYPTION_KEY')
+
+
 
 INSTALLED_APPS = [
     # ASGI Server
@@ -303,6 +305,8 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 PROJECT_NAME = os.getenv('PROJECT_NAME', 'ahs-admin-panel')
 ENVIRONMENT = os.getenv('AHS_ENV', 'development' if DEBUG else 'production')
+CRYPTO_BACKEND = 'ECC'
+
 
 # choose between 'daphne', 'hypercorn', 'django'
 HTTP_SERVER = os.getenv('AHS_SERVER', 'hypercorn')
