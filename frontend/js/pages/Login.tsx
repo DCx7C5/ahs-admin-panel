@@ -14,12 +14,13 @@ export const Login: React.FC = () => {
   const [formState, formAction, isPending] = useActionState(
     async (prevState, formData) => {
       const username = formData.get("username") as string;
-      const salt = cryptoCli.generateRandomSalt()
+      const salt = `${base64UrlEncode(username)}`
       const privateKey = await cryptoCli.generateKeyFromPassword(
           formData.get("password") as string,
           salt,
           'pbkdf2'
       );
+      console.log("TEST", await cryptoCli.cryptoKeyToArrayBuffer(privateKey))
       const publicKey = await cryptoCli.getPublicKeyFromDerivedPasswordKey(privateKey);
       const urlSafePublicKey = base64UrlEncode(publicKey);
 
@@ -28,10 +29,8 @@ export const Login: React.FC = () => {
           username: username,
           publicKey: urlSafePublicKey,
         });
-        console.log('test',response)
         if (response.status === 200) {
-          localStorage.setItem("access", response.data.access);
-          //window.location.href = "/"; // Redirect on success
+          console.log("RESPONSE", response.data)
           navigate('/')
           return { ...prevState, error: null };
         } else {
@@ -78,6 +77,7 @@ export const Login: React.FC = () => {
               className="form-control"
               id="password"
               placeholder="Password"
+              autoComplete="current-password"
               required
             />
             <label htmlFor="password">Password</label>
