@@ -2,7 +2,7 @@ FROM node
 ARG user=user
 ENV user=$user
 
-RUN npm install -g npm@11.0.0
+RUN npm install -g npm@latest
 
 ENV TERM=xterm-256color
 
