@@ -33,7 +33,7 @@ services:
     env_file:
       - .env
     volumes:
-      - .:/project
+      - ./frontend:/project
 
   redis:
     build:

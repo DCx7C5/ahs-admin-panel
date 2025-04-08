@@ -6,7 +6,7 @@ RUN npm install -g npm@latest
 
 ENV TERM=xterm-256color
 
-WORKDIR /project/frontend/
+WORKDIR /project/
 
 COPY --chmod=740 --chown=1000:1000 docker/node/entrypoint.sh /entrypoint.sh
 
