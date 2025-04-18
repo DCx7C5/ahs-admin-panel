@@ -5,7 +5,7 @@ import Bookmarks from "../components/Bookmarks/Bookmarks";
 import "@/../css/dash.scss";
 
 
-export const Dashboard = () => {
+export const Dashboard: React.FC = () => {
 
   return (
     <div id='dashboard'>

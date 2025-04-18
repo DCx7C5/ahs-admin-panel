@@ -47,7 +47,7 @@ export const Login: React.FC = () => {
     if (isAuthenticated) {
       navigate("/", )
     }
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="text-center min-vh-100 max-vh-100" id="login-wrap">
