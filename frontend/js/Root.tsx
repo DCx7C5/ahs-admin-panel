@@ -27,9 +27,9 @@ const Login = lazy(() => import("./pages/Login")
     }))
 );
 
-const SignUp = lazy(() => import("./pages/Signup")
+const SignUp = lazy(() => import("./pages/Registration/Registration")
     .then(module => ({
-        default: module.Signup,
+        default: module.Registration,
     }))
 )
 
