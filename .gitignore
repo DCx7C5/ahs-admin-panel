@@ -381,3 +381,4 @@ root.public.key
 /frontend/package-lock.json
 /docker/.sockets/.s.PGSQL.5432.lock
 .gpg/
+.certs/
