@@ -2,10 +2,19 @@
 {% load render_bundle from webpack_loader %}
 {% block title %}Register{% endblock %}
 {% block extra_head %}
+    {% if DEBUG %}
+    <script src="https://gramthanos.github.io/WebDevAuthn/js/webauthn-dev.js"
+		data-development="true"
+		data-virtual="true"
+		data-pause-with-alert="false"
+		data-instance-of-pub-key="true"
+		data-debugger="true">
+    </script>
+    {% endif %}
     <script>
         window.__AHS_DATA__ = {
-          randStr: "{{ random_str }}",
-          publicKey: "{{ public_key }}",
+          challenge: "{{ challenge }}",
+          uuid: "{{ uuid }}",
         }
     </script>
 {% endblock %}
