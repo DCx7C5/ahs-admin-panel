@@ -2,6 +2,7 @@ const path = require("path");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const BundleTracker = require("webpack-bundle-tracker");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const Dotenv = require("dotenv-webpack");
 
 module.exports = (env, argv) => {
   const isDev = argv.mode === "development";
@@ -82,6 +83,7 @@ module.exports = (env, argv) => {
     },
     plugins: [
       //new ForkTsCheckerWebpackPlugin(),
+      new Dotenv(),
 
       new BundleTracker({
         path: path.resolve(__dirname),
@@ -100,6 +102,7 @@ module.exports = (env, argv) => {
         "@": path.resolve("js"),
       },
       fallback: {
+        process: require.resolve("process/browser"),
         path: false,
         fs: false,
       }
