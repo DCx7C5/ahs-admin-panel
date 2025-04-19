@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 @deconstructible
-class AHSUsernameValidator(validators.RegexValidator):
+class AHSNameValidator(validators.RegexValidator):
     regex = r"^[a-zA-Z0-9_]+\Z"
     message = _(
         "Enter a valid username. This value may contain only unaccented lowercase a-z "

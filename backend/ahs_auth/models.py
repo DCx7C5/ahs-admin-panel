@@ -2,10 +2,10 @@ import logging
 import uuid
 from django.apps import apps
 from django.contrib.auth.base_user import AbstractBaseUser
-from django.contrib.auth.hashers import make_password, verify_password
+from django.contrib.auth.hashers import make_password
 from django.db.models import ImageField
 from django.db.models.constraints import UniqueConstraint
-from django.db.models.fields import UUIDField, DateTimeField, CharField, URLField, BooleanField
+from django.db.models.fields import UUIDField, DateTimeField, CharField, URLField, BooleanField, EmailField
 from django.db.models.indexes import Index
 
 
@@ -14,8 +14,8 @@ from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from django.contrib.auth.models import AbstractUser, Permission, UserManager, PermissionsMixin
 
-from backend.ahs_core.hashers import verify_publickey
-from backend.ahs_core.validators import AHSUsernameValidator, PublicKeyValidator
+from backend.ahs_auth.validators import AHSNameValidator, PublicKeyValidator
+
 
 logger = logging.getLogger(__name__)
 
@@ -104,21 +104,22 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
     """
     Custom user model with additional fields and functionality.
     """
-    username_validator = AHSUsernameValidator()
+    name_validator = AHSNameValidator()
     publickey_validator = PublicKeyValidator()
 
     username = CharField(
         verbose_name=_("username"),
-        max_length=30,
+        max_length=32,
         unique=True,
         help_text=_(
-            "Required. 30 characters or fewer. Letters, digits and ./-/_ only."
+            "Required. 32 characters or fewer. Letters, digits and ./-/_ only."
         ),
-        validators=[username_validator],
+        validators=[name_validator],
         error_messages={
             "unique": _("A user with that username already exists."),
         },
     )
+    email = EmailField(_("email address"), blank=True)
 
     public_key = CharField(
         verbose_name=_('Public Key'),
@@ -128,14 +129,16 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
 
     first_name = CharField(
         verbose_name=_("first name"),
-        max_length=150,
-        blank=True
+        max_length=32,
+        blank=True,
+        validators=[name_validator],
     )
 
     last_name = CharField(
         verbose_name=_("last name"),
         max_length=150,
         blank=True,
+        validators=[name_validator],
     )
 
     is_staff = BooleanField(
@@ -191,7 +194,7 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
 
     class Meta:
-        app_label = "ahs_core"
+        app_label = "ahs_auth"
         verbose_name = _("AHS User")
         verbose_name_plural = _("AHS Users")
         db_table = "auth_accounts_ahsuser"
@@ -210,40 +213,7 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
             Index(fields=['username', 'uid'], name='username_uid_index'),
         ]
 
-    def set_publickey(self, public_key: str) -> None:
-        self.public_key = make_publickey(public_key)
-        self._public_key = public_key
-
-    def check_publickey(self, public_key):
-        is_correct, must_update = verify_password(
-            password=public_key,
-            encoded=self.public_key,
-            preferred="default",
-        )
-
-        if is_correct and must_update:
-            self.set_publickey(public_key)
-        return is_correct
-
-    async def acheck_publickey(self, public_key):
-        """See check_password()."""
-
-        async def setter(pk):
-            self.set_publickey(pk)
-            # Password hash upgrades shouldn't be considered password changes.
-            self._public_key = None
-            await self.asave(update_fields=["public_key"])
-
-        is_correct, must_update = verify_password(
-            password=public_key,
-            encoded=self.public_key,
-            preferred="default",
-        )
-        if setter and is_correct and must_update:
-            await setter(public_key)
-        return is_correct
-
     def get_absolute_url(self) -> str:
         return reverse(
-            'ahs_core:user-detail',
+            'ahs_auth:user-detail',
             kwargs={'pk': self.pk})

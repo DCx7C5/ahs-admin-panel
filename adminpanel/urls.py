@@ -4,13 +4,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from debug_toolbar.toolbar import debug_toolbar_urls
 
-from backend.ahs_core.models import accounts
 
 urlpatterns = [
     path('admin/doc/', include('django.contrib.admindocs.urls'), name='documentation'),
     path('admin/', admin.site.urls, name='admin'),
-    # API Routes (JWT Protected APIs)
-    path('api/', include('backend.ahs_api.urls'), name='api'),
+    path('api/auth/', include('backend.ahs_auth.urls'), name='auth'),
     path('', include('backend.ahs_core.urls'), name='core'),
 ]
 

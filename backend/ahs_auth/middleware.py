@@ -16,12 +16,14 @@ from django.contrib.sessions.exceptions import SessionInterrupted
 from django.http import HttpRequest
 from django.utils.cache import patch_vary_headers
 from django.utils.deprecation import MiddlewareMixin
+from django.utils.functional import SimpleLazyObject
 from django.utils.http import http_date
 
-from backend.ahs_core import get_ahs_session_store
+from backend.ahs_core.utils import get_ahs_session_store
 from backend.ahs_core.auth import get_user_from_token_request, aget_user_from_token_request
 
 from backend.ahs_core.functional import AsyncLazyObject
+from backend.ahs_auth.token import AHSToken
 
 logger = logging.getLogger(__name__)
 
@@ -141,11 +143,14 @@ class SessionAuthMsgsMiddleware(MiddlewareMixin):
 
 
 class AHSMiddleware(SessionAuthMsgsMiddleware):
+    async_capable = True
+    sync_capable = False
+
 
     def __init__(self, get_response):
         MiddlewareMixin.__init__(self, get_response)
         engine = import_module(settings.SESSION_ENGINE_AHS)
-        self.SessionStore = engine.SessionStore
+        self.SessionStore = engine.AHSToken
         self.cookie_name = settings.SESSION_COOKIE_NAME_AHS
         self.cookie_path = settings.SESSION_COOKIE_PATH_AHS
 
@@ -158,10 +163,70 @@ class AHSMiddleware(SessionAuthMsgsMiddleware):
         return response
 
     async def process_request(self, request: HttpRequest) -> None:
-        await super().process_request(request)
+        session_key = request.COOKIES.get(self.cookie_name)
+        request.session = self.SessionStore(session_key)
+        token_str = request.headers.get('X-AHS-Token', None)
+        request.user = SimpleLazyObject(lambda: get_cached_user(request))  # noqa
+        request.auser = partial(auser, request)
+        request.token = await AHSToken.afrom_request(token_str)
+        request._messages = await sync_to_async(default_storage)(request)
+        return None
 
-    async def process_response(self, request: HttpRequest, response):
-        response = await super().process_response(request, response)
+    async def process_response(self, request, response):
+        # Messages
+        if hasattr(request, "_messages"):
+            unstored_messages = await sync_to_async(request._messages.update)(response)  # noqa
+            if unstored_messages and settings.DEBUG:
+                raise ValueError("Not all temporary messages could be stored.")
+        # Session
+
+        try:
+            accessed = request.session.accessed
+            modified = request.session.modified
+            empty = request.session.is_empty()
+        except AttributeError:
+            return response
+        if self.cookie_name in request.COOKIES and empty:
+            response.delete_cookie(
+                self.cookie_name,
+                path=self.cookie_path,
+                domain=self.cookie_domain,
+                samesite=settings.SESSION_COOKIE_SAMESITE,
+            )
+            if response.has_header('X-AHS-Token'):
+                response.headers.pop('X-AHS-Token')
+            patch_vary_headers(response, ("Cookie", ))
+        else:
+            if accessed:
+                patch_vary_headers(response, ("Cookie",))
+            if (modified or settings.SESSION_SAVE_EVERY_REQUEST) and not empty:
+                if await request.session.aget_expire_at_browser_close():
+                    max_age = None
+                    expires = None
+                else:
+                    max_age = await request.session.aget_expiry_age()
+                    expires_time = time.time() + max_age
+                    expires = http_date(expires_time)
+                if response.status_code < 500:
+                    try:
+                        await request.session.asave()
+                    except UpdateError:
+                        raise SessionInterrupted(
+                            "The request's session was deleted before the "
+                            "request completed. The user may have logged "
+                            "out in a concurrent request, for example."
+                        )
+                    response.set_cookie(
+                        self.cookie_name,
+                        request.session.session_key,
+                        max_age=max_age,
+                        expires=expires,
+                        domain=self.cookie_domain,
+                        path=self.cookie_path,
+                        secure=settings.SESSION_COOKIE_SECURE or None,
+                        httponly=settings.SESSION_COOKIE_HTTPONLY or None,
+                        samesite=settings.SESSION_COOKIE_SAMESITE,
+                    )
         return response
 
 

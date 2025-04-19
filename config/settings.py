@@ -20,11 +20,9 @@ SECRET_KEY = environ.get('SECRET_KEY')
 RUNTIME_SECRET_KEY = secrets.token_urlsafe(48)
 
 
-
 INSTALLED_APPS = [
     # ASGI Server
     'daphne',
-    'backend.ahs_core',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -51,8 +49,8 @@ INSTALLED_APPS = [
     'graphene_django',
 
     # Core Apps
-
-    'backend.ahs_api',
+    'backend.ahs_auth',
+    'backend.ahs_core',
     'backend.ahs_network',
     'backend.ahs_network.domains',
     'backend.ahs_network.hosts',
@@ -79,7 +77,7 @@ INSTALLED_APPS = [
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(environ.get('DEBUG'))
 
-SITE_NAME = 'AHSAdminPanel'
+SITE_NAME = 'AHS Admin Panel'
 
 DATABASES = {
     'default': {
@@ -93,12 +91,12 @@ DATABASES = {
 }
 
 MIDDLEWARE = [
-    'backend.ahs_core.middleware.AsyncRequestLoggerMiddleware',
+    'backend.ahs_auth.middleware.AsyncRequestLoggerMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'backend.ahs_core.middleware.SessionAuthMsgsMiddleware',
-    'backend.ahs_core.middleware.AHSMiddleware',
+    'backend.ahs_auth.middleware.SessionAuthMsgsMiddleware',
+    'backend.ahs_auth.middleware.AHSMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -216,7 +214,7 @@ LOGOUT_REDIRECT_URL = 'accounts/login'
 LOGIN_URL = 'accounts/login'
 LOGOUT_URL = 'accounts/logout'
 
-AUTH_USER_MODEL = "ahs_core.AHSUser"
+AUTH_USER_MODEL = "ahs_auth.AHSUser"
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
@@ -305,6 +303,8 @@ INTERNAL_IPS = ['127.0.0.1',]
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 PROJECT_NAME = os.getenv('PROJECT_NAME', 'ahs-admin-panel')
+DOMAIN_NAMES = os.getenv('DOMAIN_NAMES', 'localhost').split(',')
+
 ENVIRONMENT = os.getenv('AHS_ENV', 'development' if DEBUG else 'production')
 CRYPTO_BACKEND = 'ECC'
 
