@@ -1,71 +1,70 @@
 import {apiClient} from "../../hooks/useAHSApi";
-import React, {use, useActionState, useEffect, useState} from "react";
+import React, {use, useActionState, useState} from "react";
 import {CForm, CFormInput, CFormLabel} from "@coreui/react";
-import {base64UrlDecode, base64UrlEncode} from "../../components/utils";
 import {DataContext} from "../../components/DataProvider";
-import WebAuthnOptions from "./WebAuthnOptions";
 
 
 
-
-interface Window {
-    __AHS_DATA__: {
-        challenge: string,
-        uuid: string,
-    };
-}
 
 
 
 export const WebAuthnRegistration: React.FC = () => {
-    const api = use(DataContext)?.apiCli;
-    const [usernameValue, setUsernameValue] = useState<string>("");
-    const [options, setOptions] = useState<PublicKeyCredentialCreationOptions>(null)
-    // Decode Base64URL data (challenge and UUID)
-    const challenge = base64UrlDecode(window.__AHS_DATA__.challenge);
-    const uuid = base64UrlDecode(window.__AHS_DATA__.uuid);
+    const api = use(DataContext)?.apiCli as apiClient;
+    const [isOpen, setIsOpen] = useState(false);
+    const [authAttachment, setAuthAttachment] = useState<AuthenticatorAttachment>("platform");
+    const [pubKeyCredParams, setPubKeyCredParams] = useState<{ value: COSEAlgorithmIdentifier; label: string; selected: boolean }[]>([
+        { value: -7, label: "ECDSA w/ SHA-256 (default)", selected: true },
+        { value: -257, label: "RSASSA-PKCS1-v1_5 w/ SHA-256", selected: false },
+    ]);
 
     const [formState, formAction, isPending] = useActionState(
         async (prevState, formData) => {
-            const username = formData.get("username") as string;
-            console.log("Decoded Challenge:", challenge);
-            console.log("Decoded UUID:", uuid);
-            console.log(location.hostname)
+            const userName = formData.get("username") as string;
+            const pkCredParams = pubKeyCredParams.filter((param) => param.selected).map((param) => param.value);
 
+            const response = await api?.post('api/auth/webauthn/register/', {
+                username: JSON.stringify(userName),
+                pubkeycredparams: JSON.stringify(pkCredParams),
+                authattachment: JSON.stringify(authAttachment),
+            })
 
+            console.log('OPTIONS_RESPONSE',response)
 
-            try {
-                const creds = await navigator.credentials.create(
-                    {publicKey: options}
-                ) as PublicKeyCredential;
+            //const credentials = await navigator.credentials.create({ publicKey: options }) as PublicKeyCredential;
 
-                if (!creds || !api || !creds.hasOwnProperty('response')) {
-                    return {...prevState, error: "Registration failed. Check credentials."};
-                }
-
-                const resp = await api.post("api/signup/", {
-                    id: creds.id,
-                    type: creds.type,
-                    clientDataJSON: base64UrlEncode(creds.response.clientDataJSON),
-                    attestationObject: base64UrlEncode(creds.response.clientDataJSON),
-                })
-
-                console.log("RESPONSE:", resp);
-
-            } catch (error) {
-                console.error("Registration Error:", error);
-                return { ...prevState, error: "Registration failed. Check credentials." };
-            }
+            //console.log('CREDENTIALS',credentials)
 
             return { ...prevState, error: null };
         },
         { error: null }
     );
 
-    const handleUsernameChange = (event) => {
-        setUsernameValue(event.target.value);
+    const toggleOpen = () => setIsOpen(!isOpen);
+
+    const handlePubKeyCredsChange = (index: number) => {
+        setPubKeyCredParams((prevParams) =>
+            prevParams.map((param, i) => (i === index ? { ...param, selected: !param.selected } : param))
+        );
+    };
+
+    const getWebAuthnOptions = async (
+        userName: string,
+        pkCredParams: number[],
+        authAttachment: string | AuthenticatorAttachment
+    ) => {
+
+
+
+        console.log(api?.data)
+
+        return api?.data
     }
 
+    const verifyCredentials = async (credentials: Credential) => {
+        await api?.post('api/auth/webauthn/verify/', {
+            credentials: JSON.stringify(credentials),
+        })
+    }
 
     return (
         <>
@@ -78,8 +77,6 @@ export const WebAuthnRegistration: React.FC = () => {
                     className="form-control"
                     id="username"
                     placeholder="Username"
-                    value={usernameValue}
-                    onChange={handleUsernameChange}
                     required
                 />
                 <CFormLabel htmlFor="username">Username</CFormLabel>
@@ -88,11 +85,45 @@ export const WebAuthnRegistration: React.FC = () => {
                 {isPending ? "Creating account..." : "Register"}
             </button>
         </CForm>
-        <WebAuthnOptions onOptionsChange={(opt) => setOptions(opt)}
-                         userName={usernameValue}
-                         userId={uuid}
-                         challenge={challenge}
-        />
+            <button onClick={toggleOpen}>
+                Advanced Options
+            </button>
+            {isOpen && (
+                <div>
+
+                    {/* Authenticator Attachment (select input) */}
+                    <div>
+                        <label htmlFor="authAttachment">Authenticator Type:</label>
+                        <select
+                            id="authAttachment"
+                            value={authAttachment}
+                            onChange={(e) => setAuthAttachment(e.target.value as AuthenticatorAttachment)}
+                        >
+                            <option value="platform">Platform (e.g., Built-in, Touch ID)</option>
+                            <option value="cross-platform">Cross-Platform (e.g., USB, Security Key)</option>
+                        </select>
+                    </div>
+
+                    {/* Public Key Credential Parameters (checkboxes) */}
+                    <div>
+                        <label>Supported Algorithms:</label>
+                        <div>
+                            {pubKeyCredParams.map((param, index) => (
+                                <div key={param.value}>
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={param.selected}
+                                            onChange={() => handlePubKeyCredsChange(index)}
+                                        />
+                                        {param.label}
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };
