@@ -160,7 +160,7 @@ WEBPACK_LOADER = {
         'CACHE': not DEBUG,
         'BUNDLE_DIR_NAME': 'webpack_bundles/',  # must end with slash
         'STATS_FILE': os.path.join(BASE_DIR, 'frontend/webpack-stats.json'),
-        'POLL_INTERVAL': 0.1,
+        'POLL_INTERVAL': 0.5,
         'TIMEOUT': None,
         'IGNORE': [r'.+\.hot-update.js', r'.+\.map'],
         'LOADER_CLASS': 'webpack_loader.loader.WebpackLoader',
@@ -283,10 +283,6 @@ LOGGING = {
     },
 }
 
-# security related stuff
-ROOT_PRIVKEY_PATH = environ.get('ROOT_PRIVKEY_PATH', 'root.private.key')
-if not os.path.exists(ROOT_PRIVKEY_PATH):
-    raise ImproperlyConfigured(f"Root private key file '{ROOT_PRIVKEY_PATH}' does not exist.")
 
 SESSION_COOKIE_SECURE = False if DEBUG else True
 SESSION_COOKIE_HTTPONLY = True
@@ -307,10 +303,6 @@ DOMAIN_NAMES = os.getenv('DOMAIN_NAMES', 'localhost').split(',')
 
 ENVIRONMENT = os.getenv('AHS_ENV', 'development' if DEBUG else 'production')
 CRYPTO_BACKEND = 'ECC'
-
-
-# choose between 'daphne', 'hypercorn', 'django'
-HTTP_SERVER = os.getenv('AHS_SERVER', 'hypercorn')
 
 # choose between 'trio' and 'asyncio'
 HTTP_EVENT_LOOP = os.getenv('EVENT_LOOP', 'trio')
