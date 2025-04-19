@@ -14,10 +14,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import BaseCommand
 from django.utils import timezone
-from django.utils.functional import SimpleLazyObject
 from docker import from_env, DockerClient
-
-from config.settings import BASE_DIR, DEBUG
 
 from django.apps import apps as django_apps
 from django.utils.module_loading import import_string
@@ -89,7 +86,7 @@ def get_all_apps():
     :return: A list of directory paths containing 'apps.py'.
     """
     directories_with_apps_py = []
-    for root, dirs, files in os.walk(BASE_DIR / 'backend' ):
+    for root, dirs, files in os.walk(settings.BASE_DIR / 'backend' ):
         if "apps.py" in files:  # Check if 'apps.py' exists in the current folder
             directories_with_apps_py.append(root.split('backend/')[-1].replace('/', '.'))
     if 'makemigrations' in directories_with_apps_py:
@@ -226,8 +223,8 @@ class Docker:
     @classmethod
     def start_compose_service(
             cls,
-            compose_file: str | os.PathLike = BASE_DIR / f"docker-compose{'-dev' if DEBUG else ''}.yaml",
-            compose_project: str = settings.PROJECT_NAME
+            compose_file=None,
+            compose_project=None
     ):
         """
         Start and manage Docker Compose services for the application.
@@ -236,8 +233,17 @@ class Docker:
         compose file and project name. It waits for the specified container to reach
         the target state and handles any errors that might occur during the process.
         """
+        from django.conf import settings
+
+        if compose_file is None:
+            compose_file = settings.BASE_DIR / f"docker-compose{'-dev' if settings.DEBUG else ''}.yaml"
+
+        if compose_project is None:
+            compose_project = settings.PROJECT_NAME
+
         try:
-            subprocess.run(["docker", "compose", "-f", f"{compose_file}", "-p", f"{compose_project}", "up", "-d"], check=True)
+            subprocess.run(["docker", "compose", "-f", f"{compose_file}", "-p", f"{compose_project}", "up", "-d"],
+                           check=True)
             cls.wait_container_state(f"ahs_postgres", state="running")
         except FileNotFoundError as e:
             raise FileNotFoundError(f"Error: {e}")
@@ -249,9 +255,16 @@ class Docker:
     @classmethod
     def stop_compose_service(
             cls,
-            compose_file: str | os.PathLike = BASE_DIR / f"docker-compose{'-dev' if DEBUG else ''}.yaml",
-            compose_project: str = settings.PROJECT_NAME
+            compose_file=None,
+            compose_project=None
     ):
+        from django.conf import settings
+
+        if compose_file is None:
+            compose_file = settings.BASE_DIR / f"docker-compose{'-dev' if settings.DEBUG else ''}.yaml"
+        if compose_project is None:
+            compose_project = settings.PROJECT_NAME
+
         try:
             subprocess.run(["docker", "compose", "-f", compose_file, "-p", compose_project, "stop"], check=True)
         except FileNotFoundError as e:
@@ -259,14 +272,29 @@ class Docker:
         except subprocess.CalledProcessError as e:  # noqa
             raise subprocess.CalledProcessError(e.returncode, cmd=e.cmd)
         except Exception as e:
-            raise Exception(f"An error occurred while starting Docker Compose services: {e}")
+            raise Exception(f"An error occurred while stopping Docker Compose services: {e}")
 
     @classmethod
     def remove_compose_service(
             cls,
-            compose_file: str | os.PathLike = BASE_DIR / f"docker-compose{'-dev' if DEBUG else ''}.yaml",
-            compose_project: str = settings.PROJECT_NAME
+            compose_file=None,
+            compose_project=None
     ):
+        """
+        Remove Docker Compose services.
+
+        Args:
+            compose_file: Path to compose file, defaults to project docker-compose.yaml
+            compose_project: Project name for Docker Compose
+        """
+        from django.conf import settings
+
+        if compose_file is None:
+            compose_file = settings.BASE_DIR / f"docker-compose{'-dev' if settings.DEBUG else ''}.yaml"
+
+        if compose_project is None:
+            compose_project = settings.PROJECT_NAME
+
         try:
             subprocess.run(["docker", "compose", "-f", compose_file, "-p", compose_project, "down"], check=True)
         except FileNotFoundError as e:
@@ -274,7 +302,7 @@ class Docker:
         except subprocess.CalledProcessError as e:  # noqa
             raise subprocess.CalledProcessError(e.returncode, cmd=e.cmd)
         except Exception as e:
-            raise Exception(f"An error occurred while starting Docker Compose services: {e}")
+            raise Exception(f"An error occurred while removing Docker Compose services: {e}")
 
     @classmethod
     def start_container(cls, name: str):
@@ -339,61 +367,86 @@ class Docker:
             cls._cli = None
 
 
-async def aencode_b64urlsafe(data, remove_padding=True):
+def encode_b64(data: str | bytes, url_safe: bool = False, encoding: str = 'utf-8') -> str:
     """
-    Asynchronously encode data using URL-safe base64 encoding.
+    Encodes the given bytes or string into a Base64 string, optionally URL-safe.
 
     Args:
-        data: The data to encode (string or bytes).
-        remove_padding: Whether to remove padding characters from the encoded string.
+        data (str | bytes): The input bytes or string to be encoded.
+        url_safe (bool): If True, use URL-safe Base64 encoding (default: False).
+        encoding (str): The encoding to use for strings (default: 'utf-8').
+
     Returns:
-        URL-safe base64 encoded string without padding.
+        str: The Base64 encoded string, URL-safe if specified.
+
+    Raises:
+        TypeError: If input is neither bytes nor string.
+        UnicodeEncodeError: If string cannot be encoded with the specified encoding.
     """
     if isinstance(data, str):
-        data = data.encode('ascii')
+        data = data.encode(encoding)
+    elif not isinstance(data, bytes):
+        raise TypeError("Input must be bytes or str")
 
-    encoded = await sync_to_async(base64.urlsafe_b64encode)(data)
-    # Remove padding characters for URL-safety
-    if remove_padding:
-        # Remove padding characters
-        encoded = encoded.rstrip(b'=')
+    encoded = base64.b64encode(data).decode('ascii')
+    if url_safe:
+        encoded = encoded.replace('+', '-').replace('/', '_').rstrip('=')
 
-    return encoded.decode('ascii')
+    return encoded
 
 
-async def adecode_b64urlsafe(data: bytes | str) -> bytes | str | None:
+async def aencode_b64(data: str | bytes, url_safe: bool = False, encoding: str = 'utf-8') -> str:
     """
-    Asynchronously decode a URL-safe base64 encoded string, handling missing padding.
+    Asynchronously encode data using Base64 encoding, optionally URL-safe.
+    """
+    return await sync_to_async(encode_b64)(data, url_safe, encoding)
+
+
+def decode_b64(base64_str: str, url_safe: bool = False, to_str: bool = False, encoding: str = 'utf-8') -> bytes | str:
+    """
+    Decodes a Base64 string into bytes or a string, handling standard or URL-safe encoding.
 
     Args:
-        data: The URL-safe base64 encoded string to decode.
+        base64_str (str): The Base64 string to decode.
+        url_safe (bool): If True, handle URL-safe Base64 encoding (default: False).
+        to_str (bool): If True, return a string instead of bytes.
+        encoding (str): The encoding to use for string output (default: 'utf-8').
+
     Returns:
-        Decoded bytes or None if error occurs.
+        bytes | str: The decoded bytes or string.
+
+    Raises:
+        TypeError: If input is not a string.
+        ValueError: If input is not a valid Base64 string.
+        UnicodeDecodeError: If bytes cannot be decoded with the specified encoding.
     """
-    str_out = False
-    if isinstance(data, str):
-        str_out = True
-        data = data.encode('ascii')
+    if not isinstance(base64_str, str):
+        raise TypeError("Input must be a string")
+
+    padded = base64_str
+    if url_safe:
+        padded = padded.replace('-', '+').replace('_', '/')
+
+    # Add padding if needed
+    padding_needed = (4 - len(padded) % 4) % 4
+    padded += '=' * padding_needed
 
     try:
-        # Add padding back if needed
-        padding_needed = len(data) % 4
-        if padding_needed > 0:
-            data += '=' * (4 - padding_needed)
-
-        # Decode
-        dec_data = await sync_to_async(base64.urlsafe_b64decode)(data)
-        if str_out:
-            return dec_data.decode('ascii')
-        return dec_data
+        decoded = base64.b64decode(padded)
+        return decoded.decode(encoding) if to_str else decoded
     except Exception as e:
-        raise Exception(f"Error decoding base64 string: {e}")
+        raise ValueError("Failed to decode Base64 string") from e
 
 
-def json_decode(data: str) -> dict:
+async def adecode_b64(data: str, url_safe: bool = False, to_str: bool = False, encoding: str = 'utf-8') -> bytes | str:
+    """
+    Asynchronously decode a Base64 encoded string, optionally handling URL-safe encoding.
+    """
+    return await sync_to_async(decode_b64)(data, url_safe, to_str, encoding)
+
+def decode_json(data: str) -> dict:
     """
     Decode a JSON string into a Python dictionary.
-
     Args:
         data: The JSON string to decode.
     Returns:
@@ -405,22 +458,29 @@ def json_decode(data: str) -> dict:
         raise ValueError(f"Invalid JSON data: {e}") from e
 
 
-async def ajson_decode(data: str) -> dict:
+async def adecode_json(data: str) -> dict:
     """
     Asynchronously decode a JSON string into a Python dictionary.
-
-    Args:
-        data: The JSON string to decode.
-    Returns:
-        Decoded dictionary.
     """
-    return await sync_to_async(json_decode)(data)
+    return await sync_to_async(decode_json)(data)
+
+
+def encode_json(obj) -> str:
+    try:
+        return json.dumps(obj)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON data: {e}") from e
+
+
+async def aencode_json(obj) -> str:
+    return await sync_to_async(encode_json)(obj)
+
 
 def get_ahs_session_store():
     """
     Return the AHS session engine.
     """
-    return import_module(settings.SESSION_ENGINE_AHS).SessionStore
+    return import_module(settings.SESSION_ENGINE_AHS).AHSToken
 
 
 def get_ahs_session_model():
@@ -443,10 +503,11 @@ def get_ahs_session_model():
             % settings.AUTH_USER_MODEL
         )
 
+
 def get_crypto_backend():
     try:
         crypto_cfg = settings.CRYPTO_BACKEND
         _cls = import_string(f'backend.ahs_core.{crypto_cfg.lower()}.{crypto_cfg.upper()}')
-        return SimpleLazyObject(lambda: _cls())
+        return _cls()
     except AttributeError:
         raise ImproperlyConfigured("CRYPTO_BACKEND must be set")
