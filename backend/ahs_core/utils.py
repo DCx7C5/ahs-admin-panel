@@ -458,7 +458,7 @@ def decode_json(data: str) -> dict:
         raise ValueError(f"Invalid JSON data: {e}") from e
 
 
-async def adecode_json(data: str) -> dict:
+async def adecode_json(data: str) -> dict | str | int | bytes:
     """
     Asynchronously decode a JSON string into a Python dictionary.
     """
