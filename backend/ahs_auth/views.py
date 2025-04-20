@@ -6,6 +6,7 @@ from adrf.decorators import api_view
 from django.contrib.auth import get_user_model, alogin
 from django.core.cache import cache
 from rest_framework.response import Response
+from webauthn.helpers.cose import COSEAlgorithmIdentifier
 from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRegistrationResponse
 
 from webauthn.helpers.options_to_json import options_to_json
@@ -47,7 +48,7 @@ async def webauthn_register_view(request):
     except Exception as e:
         return Response(
             {"errors": REGISTRATION_ERROR.format(e)},
-            status=400
+            status=400,
         )
 
     if await User.objects.filter(username=username).aexists():
@@ -65,9 +66,9 @@ async def webauthn_register_view(request):
         user_id=user_id.encode('utf-8'),
         user_name=username,
         user_display_name=username,
-        challenge=challenge.encode(),
+        challenge=challenge.encode('utf-8'),
         timeout=60000,
-        supported_pub_key_algs=user_pubkey_cred_params,
+        supported_pub_key_algs=[COSEAlgorithmIdentifier(p) for p in user_pubkey_cred_params],
         attestation=AttestationConveyancePreference.DIRECT,
         authenticator_selection=AuthenticatorSelectionCriteria(
             authenticator_attachment=AuthenticatorAttachment(user_auth_attachment),
@@ -124,17 +125,13 @@ async def webauthn_verify_registration_view(request):
             status=400
         )
 
-    print("VERIFIED_REGISTRATION",verified_registration)
-
-    user, updated = await User.objects.aupdate_or_create(
+    new_user = await User.objects.acreate(
         username=username,
         uid=user_id,
     )
 
-
-
     new_creds = await WebAuthnCredential.objects.acreate(
-        user=user,
+        user=new_user,
         credential_id=verified_registration.credential_id.decode('utf-8'),
         public_key=verified_registration.credential_public_key.decode('utf-8'),
         credential_type=verified_registration.credential_type,
@@ -142,7 +139,7 @@ async def webauthn_verify_registration_view(request):
         sign_count=verified_registration.sign_count,
     )
 
-    await user.asave()
+    await new_user.asave()
     await new_creds.asave()
 
     return Response(
