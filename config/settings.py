@@ -91,7 +91,7 @@ DATABASES = {
 }
 
 MIDDLEWARE = [
-    'backend.ahs_auth.middleware.AsyncRequestLoggerMiddleware',
+    'backend.ahs_core.middleware.AsyncRequestLoggerMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
