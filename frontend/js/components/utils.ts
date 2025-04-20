@@ -143,10 +143,11 @@ export function base64UrlEncode(arraybuffer: ArrayBuffer): string {
  *
  * @param {string} base64 - The Base64 URL-safe encoded string to decode. It should only contain characters
  * in the set [A-Za-z0-9\-_].
+ * @param str_out
  * @return {ArrayBuffer} The decoded data as an ArrayBuffer.
  * @throws {Error} Throws an error if the input string is not a valid Base64 URL-safe encoded string.
  */
-export function base64UrlDecode(base64: string): ArrayBuffer {
+export function base64UrlDecode(base64: string, str_out: boolean = false): string | ArrayBuffer {
 
   // Validate input
   if (!/^[A-Za-z0-9\-_]+$/.test(base64)) {
@@ -166,7 +167,7 @@ export function base64UrlDecode(base64: string): ArrayBuffer {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-
+  if (str_out) return ab2str(bytes.buffer);
   return bytes.buffer;
 }
 
