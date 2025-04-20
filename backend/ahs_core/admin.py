@@ -9,7 +9,6 @@ from django.contrib.sessions.models import Session
 from backend.ahs_core.models import AHSSession
 from backend.ahs_core.models.apps import App
 
-User = get_user_model()
 
 @admin.register(App)
 class AppModelAdmin(ModelAdmin):
@@ -39,23 +38,6 @@ class AdminLogAdmin(ModelAdmin):
 class PermissionAdmin(ModelAdmin):
     list_display = ('id', 'name', 'content_type', 'codename')
     ordering = ('id',)
-
-
-@admin.register(User)
-class AHSUserAdmin(UserAdmin):
-    model = User
-    fieldsets = tuple(tuple(
-        (section[0], {"fields": tuple(field if field != "email" else "public_key" for field in section[1]["fields"])})
-        for
-        section in UserAdmin.fieldsets))
-
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        (None, {'fields': ('image',)}),
-    )
-    list_display = tuple(field if field != "email" else "public_key" for field in UserAdmin.list_display)
-    search_fields = tuple(field if field != "email" else "public_key" for field in UserAdmin.search_fields)
-    show_full_result_count = True
-
 
 
 admin.site.unregister(Group)
