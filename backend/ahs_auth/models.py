@@ -1,9 +1,10 @@
 import logging
 import uuid
 from django.apps import apps
-from django.contrib.auth.base_user import AbstractBaseUser
+from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.hashers import make_password
-from django.db.models import ImageField
+from django.db import models
+from django.db.models import ImageField, Model, OneToOneField, ForeignKey
 from django.db.models.constraints import UniqueConstraint
 from django.db.models.fields import UUIDField, DateTimeField, CharField, URLField, BooleanField, EmailField
 from django.db.models.indexes import Index
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 make_publickey = make_password
 
 
-class AHSUserManager(UserManager):
+class AHSUserManager(BaseUserManager):
     def _create_user_object(self, username, public_key=None, password=None,**extra_fields):
         if not username:
             raise ValueError("The given username must be set")
@@ -47,27 +48,27 @@ class AHSUserManager(UserManager):
         """
         Create and save a user with the given username, email, and password.
         """
-        user = self._create_user_object(username, password, **extra_fields)
+        user = self._create_user_object(username, public_key=public_key, **extra_fields)
         user.save(using=self._db)
         return user
 
     async def _acreate_user(self, username, public_key, **extra_fields):
         """See _create_user()"""
-        user = self._create_user_object(username, email, password, **extra_fields)
+        user = self._create_user_object(username, public_key=public_key, **extra_fields)
         await user.asave(using=self._db)
         return user
 
     def create_user(self, username, public_key, **extra_fields):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return self._create_user(username, email, password, **extra_fields)
+        return self._create_user(username, public_key=public_key, **extra_fields)
 
     create_user.alters_data = True
 
     async def acreate_user(self, username, public_key, **extra_fields):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return await self._acreate_user(username, email, password, **extra_fields)
+        return await self._acreate_user(username, public_key=public_key, **extra_fields)
 
     acreate_user.alters_data = True
 
@@ -120,12 +121,6 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         },
     )
     email = EmailField(_("email address"), blank=True)
-
-    public_key = CharField(
-        verbose_name=_('Public Key'),
-        validators=[publickey_validator],
-        help_text=_('The Users Public key.'),
-    )
 
     first_name = CharField(
         verbose_name=_("first name"),
@@ -190,7 +185,6 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
     ahs_objects = AHSUserManager()
 
     USERNAME_FIELD = "username"
-    PUBLICKEY_FIELD = "public_key"
     REQUIRED_FIELDS = []
 
     class Meta:
@@ -217,3 +211,79 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         return reverse(
             'ahs_auth:user-detail',
             kwargs={'pk': self.pk})
+
+
+class WebAuthnCredential(Model):
+
+    user = ForeignKey(
+        "ahs_auth.AHSUser",
+        on_delete=models.CASCADE,
+        related_name="webauthn_credential",
+        related_query_name="webauthn_credential",
+        verbose_name="User",
+        help_text=_("The user associated with this credential."),
+    )
+
+    credential_id = CharField(
+        max_length=255,
+        unique=True,
+        verbose_name="WebAuthn Credential ID",
+        help_text=_("The credential's unique identifier."),
+    )
+
+    public_key = CharField(
+        max_length=512,
+        unique=True,
+        editable=False,
+        verbose_name="WebAuthn Public Key",
+        help_text=_("The credential's public key."),
+        validators=[PublicKeyValidator]
+    )
+
+    sign_count = models.IntegerField(
+        default=0,
+        verbose_name="WebAuthn Sign Count",
+        help_text=_("The number of times the credential has been used for sign operations."),
+    )
+
+    credential_type = CharField(
+        max_length=32,
+        editable=False,
+        verbose_name="Credential Type",
+        help_text=_("The type of credential."),
+    )
+
+    device_type = CharField(
+        max_length=32,
+        editable=False,
+        verbose_name="Authenticator Device Type",
+        help_text=_("The type of authenticator device."),
+    )
+
+    created_at = DateTimeField(
+        auto_now_add=True,
+        verbose_name="Created At",
+        help_text=_("The timestamp when the credential was created."),
+    )
+
+    class Meta:
+        app_label = "ahs_auth"
+        verbose_name = "WebAuthn Credential"
+        verbose_name_plural = "WebAuthn Credentials"
+        ordering = ['id']
+        db_table = "auth_accounts_webauthn"
+        unique_together = (('user', 'credential_id', 'public_key'),)
+
+        constraints = [
+            UniqueConstraint(
+                fields=['user', 'credential_id', 'public_key'],
+                name='unique_user_credential_id_public_key_constraint',
+            ),
+        ]
+
+        indexes = [
+            Index(fields=['user'], name='user_index'),
+            Index(fields=['credential_id'], name='credential_id_index'),
+            Index(fields=['user', 'credential_id'], name='user_credential_id_index'),
+            Index(fields=['user', 'credential_id', 'public_key'], name='user_credential_id_public_key_index'),
+        ]
