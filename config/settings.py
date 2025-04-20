@@ -299,7 +299,7 @@ INTERNAL_IPS = ['127.0.0.1',]
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 PROJECT_NAME = os.getenv('PROJECT_NAME', 'ahs-admin-panel')
-DOMAIN_NAMES = os.getenv('DOMAIN_NAMES', 'localhost').split(',')
+DOMAIN_NAME = os.getenv('DOMAIN_NAME', 'localhost')
 
 ENVIRONMENT = os.getenv('AHS_ENV', 'development' if DEBUG else 'production')
 CRYPTO_BACKEND = 'ECC'
