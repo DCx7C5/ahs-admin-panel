@@ -2,9 +2,14 @@ import {apiClient} from "../../hooks/useAHSApi";
 import React, {use, useActionState, useState} from "react";
 import {CForm, CFormInput, CFormLabel} from "@coreui/react";
 import {DataContext} from "../../components/DataProvider";
+import {ab2str, base64UrlDecode, base64UrlEncode} from "../../components/utils";
 
 
-
+interface WebAuthnOptionsResponse {
+    message: string;
+    options: string;
+    random: string;
+}
 
 
 
@@ -22,17 +27,41 @@ export const WebAuthnRegistration: React.FC = () => {
             const userName = formData.get("username") as string;
             const pkCredParams = pubKeyCredParams.filter((param) => param.selected).map((param) => param.value);
 
-            const response = await api?.post('api/auth/webauthn/register/', {
+            const optResponse: WebAuthnOptionsResponse = await api?.post('api/auth/webauthn/register/', {
                 username: JSON.stringify(userName),
                 pubkeycredparams: JSON.stringify(pkCredParams),
                 authattachment: JSON.stringify(authAttachment),
             })
 
-            console.log('OPTIONS_RESPONSE',response)
+            if (!optResponse.random || !optResponse.options) {
+                return { ...prevState, error: "Failed to get options." };
+            }
 
-            //const credentials = await navigator.credentials.create({ publicKey: options }) as PublicKeyCredential;
+            const options = JSON.parse(optResponse.options);
+            options.challenge = base64UrlDecode(options.challenge);
+            options.user.id = base64UrlDecode(options.user.id)
 
-            //console.log('CREDENTIALS',credentials)
+            const credential = await navigator.credentials.create({ publicKey: options }) as PublicKeyCredential;
+            const auth_response = credential.response as AuthenticatorAttestationResponse;
+
+            const serialized_credential = {
+                id: credential.id,
+                rawId: base64UrlEncode(credential.rawId),
+                response: {
+                    clientDataJSON: base64UrlEncode(auth_response.clientDataJSON),
+                    attestationObject: base64UrlEncode(auth_response.attestationObject),
+                },
+                type: credential.type,
+            }
+
+            const verifyResponse = await api?.post(
+                'api/auth/webauthn/register/verify/',
+                {
+                    credential: JSON.stringify(serialized_credential),
+                    random: optResponse.random,
+                })
+
+            console.log('VERIFY_RESPONSE',verifyResponse)
 
             return { ...prevState, error: null };
         },
@@ -47,24 +76,6 @@ export const WebAuthnRegistration: React.FC = () => {
         );
     };
 
-    const getWebAuthnOptions = async (
-        userName: string,
-        pkCredParams: number[],
-        authAttachment: string | AuthenticatorAttachment
-    ) => {
-
-
-
-        console.log(api?.data)
-
-        return api?.data
-    }
-
-    const verifyCredentials = async (credentials: Credential) => {
-        await api?.post('api/auth/webauthn/verify/', {
-            credentials: JSON.stringify(credentials),
-        })
-    }
 
     return (
         <>
@@ -89,10 +100,10 @@ export const WebAuthnRegistration: React.FC = () => {
                 Advanced Options
             </button>
             {isOpen && (
-                <div>
+                <div className="advanced-webauthn-options">
 
                     {/* Authenticator Attachment (select input) */}
-                    <div>
+                    <div className="select-input">
                         <label htmlFor="authAttachment">Authenticator Type:</label>
                         <select
                             id="authAttachment"
@@ -105,7 +116,7 @@ export const WebAuthnRegistration: React.FC = () => {
                     </div>
 
                     {/* Public Key Credential Parameters (checkboxes) */}
-                    <div>
+                    <div className="checkbox-input">
                         <label>Supported Algorithms:</label>
                         <div>
                             {pubKeyCredParams.map((param, index) => (
