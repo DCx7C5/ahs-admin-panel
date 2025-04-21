@@ -21,6 +21,10 @@ RUNTIME_SECRET_KEY = secrets.token_urlsafe(48)
 
 
 INSTALLED_APPS = [
+    # Core Apps
+    'backend.ahs_auth',
+    'backend.ahs_core',
+
     # ASGI Server
     'daphne',
 
@@ -48,9 +52,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'graphene_django',
 
-    # Core Apps
-    'backend.ahs_auth',
-    'backend.ahs_core',
+    # More Core Apps
     'backend.ahs_network',
     'backend.ahs_network.domains',
     'backend.ahs_network.hosts',
@@ -73,6 +75,7 @@ INSTALLED_APPS = [
     'backend.apps.system.security',
     'backend.apps.workspaces',
     'backend.apps.xapi',
+
 ]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(environ.get('DEBUG'))
@@ -151,6 +154,14 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication'
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
 }
@@ -164,6 +175,7 @@ WEBPACK_LOADER = {
         'TIMEOUT': None,
         'IGNORE': [r'.+\.hot-update.js', r'.+\.map'],
         'LOADER_CLASS': 'webpack_loader.loader.WebpackLoader',
+
     }
 }
 
@@ -280,6 +292,11 @@ LOGGING = {
             'handlers': ['console', 'rotating_file'],
             'propagate': False,  # Prevent logs from duplicating in `backend.ahs_core`
         },
+        'hpack.hpack': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -292,8 +309,8 @@ CSRF_COOKIE_HTTPONLY = False if DEBUG else True
 SECURE_CONTENT_TYPE_NOSNIFF = False if DEBUG else True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_ALLOW_ALL = True if DEBUG else False
-CORS_ALLOWED_ORIGINS = ["http://localhost:8000", "http://localhost:3000",]
-CORS_ORIGIN_WHITELIST = ['http://localhost:8000', 'http://localhost:3000',]
+CORS_ALLOWED_ORIGINS = ["https://localhost:8443", "https://localhost:3000",]
+CORS_ORIGIN_WHITELIST = ['https://localhost:8443', 'https://localhost:3000',]
 GRAPHENE = {'SCHEMA': 'ahs_core.schema.schema'}
 INTERNAL_IPS = ['127.0.0.1',]
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']

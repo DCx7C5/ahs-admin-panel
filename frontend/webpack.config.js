@@ -15,17 +15,24 @@ module.exports = (env, argv) => {
     },
     output: {
       path: path.resolve("webpack_bundles/"),
-      publicPath: isDev ? "http://localhost:3000/frontend/webpack_bundles/" : "/static/",
+      publicPath: isDev ? "https://localhost:3000/frontend/webpack_bundles/" : "/static/",
       filename: isDev ? "[name].js" : "[name]-[chunkhash].js",
     },
     devServer: {
       hot: true,
       historyApiFallback: true,
       host: "0.0.0.0",
-      port: 3000,
+      port: 443,
       headers: {
         "Access-Control-Allow-Origin": "*" ,
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+      },
+      server: {
+        type: "https",
+        options: {
+          key: "/project/.certs/localhost-key.pem",
+          cert: "/project/.certs/localhost.pem",
+        },
       },
       allowedHosts: "all",
       client: {
