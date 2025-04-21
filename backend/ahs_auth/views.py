@@ -41,10 +41,20 @@ AUTHENTICATION_ERROR = "Authentication error. Please try again." if not settings
 @api_view(['POST'])
 async def webauthn_register_view(request):
     data = request.data
+    j_username = data.get("username")
+    j_publickey = data.get("pubkeycredparams")
+    j_auth_attachment = data.get("authattachment")
+
+    if not all([j_username, j_publickey, j_auth_attachment]):
+        return Response(
+            {"errors": REGISTRATION_ERROR},
+            status=400,
+        )
+
     try:
-        username = await adecode_json(data.get("username"))
-        user_pubkey_cred_params = await adecode_json(data.get("pubkeycredparams"))
-        user_auth_attachment = await adecode_json(data.get("authattachment"))
+        username = await adecode_json(j_username)
+        user_pubkey_cred_params = await adecode_json(j_publickey)
+        user_auth_attachment = await adecode_json(j_auth_attachment)
     except Exception as e:
         return Response(
             {"errors": REGISTRATION_ERROR.format(e)},
@@ -56,7 +66,7 @@ async def webauthn_register_view(request):
             {"errors": "Registration error. Username already exists. Please try again."},
         )
 
-    challenge = secrets.token_hex(64)
+    challenge = secrets.token_bytes(128).hex()
     user_id = f"{uuid.uuid4()}"
     random = secrets.token_hex(32)
 
@@ -72,7 +82,7 @@ async def webauthn_register_view(request):
         attestation=AttestationConveyancePreference.DIRECT,
         authenticator_selection=AuthenticatorSelectionCriteria(
             authenticator_attachment=AuthenticatorAttachment(user_auth_attachment),
-            user_verification=UserVerificationRequirement.PREFERRED,
+            user_verification=UserVerificationRequirement.REQUIRED,
         ),
         hints=[
             PublicKeyCredentialHint.SECURITY_KEY,
@@ -98,15 +108,22 @@ async def webauthn_register_view(request):
 @api_view(['POST'])
 async def webauthn_verify_registration_view(request):
     data = request.data
-    json_cred = data.get("credential")
-    random = data.get("random")
-
+    json_cred = data.get("credential", None)
+    random = data.get("random", None)
     cached_value = await cache.aget(random, None)
+
     if not cached_value:
         return Response(
             {"errors": "Registration timed out. Please try again."},
-            status=400
+            status=400,
         )
+
+    if not json_cred or not random:
+        return Response(
+            {"errors": "Registration error. Please try again."},
+            status=400,
+        )
+
 
     await cache.adelete(random)
 
