@@ -80,14 +80,25 @@ Follow the steps below to set up and run this project locally:
 
 ### Secret Key Setup  
 
-Generate a new secret key for the project and update the `SECRET_KEY` in the `.env` file:  
+Generate a new secret key for the project and update the `SECRET_KEY` in the `.env` file:
+   ```bash
+   python -c 'import secrets; print(secrets.token_urlsafe(48))'  
+   ```  
 
-```bash  
-$ python -c 'import secrets; print(secrets.token_urlsafe(48))'  
+### SSL certificate and key setup
 
-# Output:  
-<YOUR_SECRET_KEY>
-```  
+1. Create the certificate directory
+   ```bash
+   mkdir /path/to/project/.certs && cd /path/to/project/.certs/
+   ```
+2. Install the local CA in the system trust store.
+   ```bash
+   mkcert -install
+   ```
+3. Create the certificate and key
+   ```bash
+   mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1
+   ```
 
 ### Environment Configuration  
 
