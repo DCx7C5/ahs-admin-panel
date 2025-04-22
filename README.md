@@ -102,6 +102,14 @@ Generate a new secret key for the project and update the `SECRET_KEY` in the `.e
    ```
 
 
+### SSL certificate and key setup
+
+```bash
+$ mkdir /path/to/project/.certs && cd /path/to/project/.certs/
+$ mkcert -install   # Install the local CA in the system trust store.
+$ mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1
+```
+
 ### Environment Configuration  
 
 1. Rename `example.env` to `.env`.  
