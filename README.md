@@ -89,6 +89,14 @@ $ python -c 'import secrets; print(secrets.token_urlsafe(48))'
 <YOUR_SECRET_KEY>
 ```  
 
+### SSL certificate and key setup
+
+```bash
+$ mkdir /path/to/project/.certs && cd /path/to/project/.certs/
+$ mkcert -install   # Install the local CA in the system trust store.
+$ mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1
+```
+
 ### Environment Configuration  
 
 1. Rename `example.env` to `.env`.  
