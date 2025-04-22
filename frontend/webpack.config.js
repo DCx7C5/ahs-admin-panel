@@ -32,6 +32,7 @@ module.exports = (env, argv) => {
         options: {
           key: "/project/.certs/localhost-key.pem",
           cert: "/project/.certs/localhost.pem",
+          ca: "/home/$USER/.local/share/mkcert/rootCA.pem"
         },
       },
       allowedHosts: "all",
