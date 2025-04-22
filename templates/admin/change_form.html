@@ -1,0 +1,8 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+    {% if original.is_superuser %}
+        <li><a href="{% url 'admin:add_webauthn' original.pk %}" class="historylink">Add WebAuthn</a></li>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
