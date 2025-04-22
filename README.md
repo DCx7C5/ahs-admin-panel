@@ -78,6 +78,7 @@ Below is a list of custom Django management commands included in the project:
 
 Follow the steps below to set up and run this project locally:  
 
+
 ### Secret Key Setup  
 
 Generate a new secret key for the project and update the `SECRET_KEY` in the `.env` file:
@@ -100,6 +101,7 @@ Generate a new secret key for the project and update the `SECRET_KEY` in the `.e
    mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1
    ```
 
+
 ### Environment Configuration  
 
 1. Rename `example.env` to `.env`.  
@@ -115,7 +117,7 @@ Generate a new secret key for the project and update the `SECRET_KEY` in the `.e
 | `DB_HOST`           | Optional | Leave blank for UNIX sockets or specify a host name.  |  
 
 ---
-
+ 
 ## Running the Project  
 
 Once the environment is configured:  
