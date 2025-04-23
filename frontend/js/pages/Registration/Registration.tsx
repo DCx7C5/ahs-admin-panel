@@ -1,19 +1,7 @@
-import React, {
-    lazy,
-    Suspense,
-    use,
-    useActionState,
-    useCallback,
-    useEffect,
-    useOptimistic,
-    useRef,
-    useState
-} from "react";
+import React, {lazy, Suspense, use, useEffect, useState} from "react";
 import { DataContext } from "../../components/DataProvider";
 import "@/../css/register.scss";
-import TabNavigation, {TabNavigationProps} from "../../components/tabs/TabNavigation";
-
-
+import TabNavigation from "../../components/tabs/TabNavigation";
 
 
 const KeybaseRegistration = lazy(() => import("./KeybaseRegistration")
@@ -30,13 +18,11 @@ const WebAuthnRegistration = lazy(() => import("./WebAuthnRegistration")
 
 
 export const Registration: React.FC = () => {
-  const {apiCli} = use(DataContext);
-
   const [activeTab, setActiveTab] = useState<string>("WebAuthn");
 
 
   useEffect(() => {
-      console.log('registration mounted', apiCli)
+      console.log('registration mounted')
   }, []);
 
 

@@ -1,8 +1,9 @@
 import {apiClient} from "../../hooks/useAHSApi";
-import React, {use, useActionState, useState} from "react";
+import React, {use, useActionState, useEffect, useState} from "react";
 import {CForm, CFormInput, CFormLabel} from "@coreui/react";
 import {DataContext} from "../../components/DataProvider";
-import {ab2str, base64UrlDecode, base64UrlEncode} from "../../components/utils";
+import {base64UrlDecode, base64UrlEncode} from "../../components/utils";
+import {useNavigate} from "react-router-dom";
 
 
 interface WebAuthnOptionsResponse {
@@ -11,15 +12,22 @@ interface WebAuthnOptionsResponse {
     random: string;
 }
 
+interface WebAuthnRegistrationVerifyResponse {
+    message: string;
+    status: number;
+}
 
 
 export const WebAuthnRegistration: React.FC = () => {
     const api = use(DataContext)?.apiCli as apiClient;
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [authAttachment, setAuthAttachment] = useState<AuthenticatorAttachment>("platform");
+    const [isRegistered, setIsRegistered] = useState(false);
     const [pubKeyCredParams, setPubKeyCredParams] = useState<{ value: COSEAlgorithmIdentifier; label: string; selected: boolean }[]>([
-        { value: -7, label: "ECDSA w/ SHA-256 (default)", selected: true },
-        { value: -257, label: "RSASSA-PKCS1-v1_5 w/ SHA-256", selected: false },
+        { value: -8, label: "Ed25519", selected: true},
+        { value: -7, label: "ECDSA w/ SHA-256", selected: true },
+        { value: -257, label: "RSASSA-PKCS1-v1_5 w/ SHA-256", selected: true },
     ]);
 
     const [formState, formAction, isPending] = useActionState(
@@ -32,14 +40,15 @@ export const WebAuthnRegistration: React.FC = () => {
                 pubkeycredparams: JSON.stringify(pkCredParams),
                 authattachment: JSON.stringify(authAttachment),
             })
-
             if (!optResponse.random || !optResponse.options) {
                 return { ...prevState, error: "Failed to get options." };
             }
 
             const options = JSON.parse(optResponse.options);
             options.challenge = base64UrlDecode(options.challenge);
-            options.user.id = base64UrlDecode(options.user.id)
+            options.user.id = base64UrlDecode(options.user.id);
+            options.authenticatorSelection.requireResidentKey = false;
+            console.log('OPTIONS',options);
 
             const credential = await navigator.credentials.create({ publicKey: options }) as PublicKeyCredential;
             const auth_response = credential.response as AuthenticatorAttestationResponse;
@@ -54,16 +63,21 @@ export const WebAuthnRegistration: React.FC = () => {
                 type: credential.type,
             }
 
-            const verifyResponse = await api?.post(
+            const verifyResponse: WebAuthnRegistrationVerifyResponse = await api?.post(
                 'api/auth/webauthn/register/verify/',
                 {
-                    credential: JSON.stringify(serialized_credential),
+                    credential: serialized_credential,
                     random: optResponse.random,
                 })
 
-            console.log('VERIFY_RESPONSE',verifyResponse)
+            if (verifyResponse && verifyResponse.status === 200) {
+                setIsRegistered(true);
+                return { ...prevState, error: null };
 
-            return { ...prevState, error: null };
+            } else {
+                return { ...prevState, error: "Failed to register." };
+            }
+
         },
         { error: null }
     );
@@ -76,6 +90,12 @@ export const WebAuthnRegistration: React.FC = () => {
         );
     };
 
+    useEffect(() => {
+        if (isRegistered && !isPending) {
+            navigate("accounts/login/", { replace: true })
+        }
+
+    }, [isRegistered, isPending, navigate]);
 
     return (
         <>

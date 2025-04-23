@@ -21,7 +21,7 @@ const DashBoard = lazy(() => import("./pages/Dashboard")
     }))
 );
 
-const Login = lazy(() => import("./pages/Login")
+const Login = lazy(() => import("./pages/Login/Login")
     .then(module => ({
         default: module.Login,
     }))
