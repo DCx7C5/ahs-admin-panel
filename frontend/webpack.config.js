@@ -22,7 +22,7 @@ module.exports = (env, argv) => {
       hot: true,
       historyApiFallback: true,
       host: "0.0.0.0",
-      port: 443,
+      port: 3000,
       headers: {
         "Access-Control-Allow-Origin": "*" ,
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS"
@@ -32,7 +32,7 @@ module.exports = (env, argv) => {
         options: {
           key: "/project/.certs/localhost-key.pem",
           cert: "/project/.certs/localhost.pem",
-          ca: "/home/$USER/.local/share/mkcert/rootCA.pem"
+          ca: "/project/.certs/rootCA.pem"
         },
       },
       allowedHosts: "all",
