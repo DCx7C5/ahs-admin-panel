@@ -1,7 +1,7 @@
 # AHS Admin Panel  
 ![Last Commit](https://img.shields.io/github/last-commit/dcx7c5/ahs-admin-panel.svg)  
 
-![Django](https://img.shields.io/badge/Django-5.x-brightgreen?logo=django)  
+![Django](https://img.shields.io/badge/Django-5.x-brightgreen?logo=django) \
 ![Node.js](https://img.shields.io/badge/Node.js-18.x-green?logo=node.js)  
 ![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python)  
 ![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)  
