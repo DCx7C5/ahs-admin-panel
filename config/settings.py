@@ -235,6 +235,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_ENGINE_AHS = 'backend.ahs_core.engines'
 SESSION_MODEL_AHS = "ahs_core.AHSSession"
 SESSION_TOKEN_EXPIRATION_TIME = 60 * 60 * 24 * 7  # 7 days
+
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
@@ -301,17 +302,21 @@ LOGGING = {
 }
 
 
-SESSION_COOKIE_SECURE = False if DEBUG else True
+SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 
-CSRF_COOKIE_SECURE = False if DEBUG else True
-CSRF_COOKIE_HTTPONLY = False if DEBUG else True
-SECURE_CONTENT_TYPE_NOSNIFF = False if DEBUG else True
-CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+CORS_ALLOW_CREDENTIALS = False
 CORS_ORIGIN_ALLOW_ALL = True if DEBUG else False
-CORS_ALLOWED_ORIGINS = ["https://localhost:8443", "https://localhost:3000",]
-CORS_ORIGIN_WHITELIST = ['https://localhost:8443', 'https://localhost:3000',]
+CORS_ALLOWED_ORIGINS = ["https://localhost", "https://localhost:3000"]
+CORS_ORIGIN_WHITELIST = ['https://localhost', 'https://localhost:3000']
+
 GRAPHENE = {'SCHEMA': 'ahs_core.schema.schema'}
+
 INTERNAL_IPS = ['127.0.0.1',]
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
@@ -319,18 +324,13 @@ PROJECT_NAME = os.getenv('PROJECT_NAME', 'ahs-admin-panel')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME', 'localhost')
 
 ENVIRONMENT = os.getenv('AHS_ENV', 'development' if DEBUG else 'production')
-CRYPTO_BACKEND = 'ECC'
-
-# choose between 'trio' and 'asyncio'
-HTTP_EVENT_LOOP = os.getenv('EVENT_LOOP', 'trio')
-WS_EVENT_LOOP = os.getenv('WS_EVENT_LOOP', 'trio')
 
 
 if DEBUG:
     hostname, _, ips = gethostbyname_ex(gethostname())
     ipl = [ip[: ip.rfind(".")] + ".1" for ip in ips]
     INTERNAL_IPS += ipl
-    ALLOWED_HOSTS += [hostname, '0.0.0.0', 'localhost'] + ipl
+    ALLOWED_HOSTS += [hostname] + ipl
     REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] += (
         'rest_framework.renderers.BrowsableAPIRenderer',
     )
