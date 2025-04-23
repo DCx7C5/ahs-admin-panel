@@ -3,7 +3,9 @@ import secrets
 import uuid
 
 from adrf.decorators import api_view
+
 from django.contrib.auth import get_user_model, alogin
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.core.cache import cache
 from rest_framework.response import Response
 from webauthn.helpers.cose import COSEAlgorithmIdentifier
@@ -15,10 +17,10 @@ from webauthn.helpers.structs import (
     AttestationConveyancePreference,
     AuthenticatorSelectionCriteria,
     AuthenticatorAttachment,
-    PublicKeyCredentialHint,
     UserVerificationRequirement,
-    PublicKeyCredentialDescriptor,
+    ResidentKeyRequirement,
 )
+
 from webauthn.registration.verify_registration_response import verify_registration_response, VerifiedRegistration
 from webauthn.registration.generate_registration_options import generate_registration_options
 from webauthn.authentication.generate_authentication_options import generate_authentication_options
@@ -27,15 +29,15 @@ from webauthn.authentication.verify_authentication_response import verify_authen
 
 from backend.ahs_auth.models import WebAuthnCredential
 from backend.ahs_auth.webauthn import EXPECTED_RP_ID, EXPECTED_ORIGIN, SUPPORTED_ALGOS
-from backend.ahs_core.utils import adecode_json
+from backend.ahs_core.utils import adecode_json, aencode_b64
 from config import settings
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-REGISTRATION_ERROR = "Registration error. Please try again." if not settings.DEBUG else "{}"
-AUTHENTICATION_ERROR = "Authentication error. Please try again." if not settings.DEBUG else "{}"
+REGISTRATION_ERROR = "Registration error. Please try again." if not settings.DEBUG else "Registration error: {}"
+AUTHENTICATION_ERROR = "Authentication error. Please try again." if not settings.DEBUG else "Authentication error: {}"
 
 
 @api_view(['POST'])
@@ -64,6 +66,7 @@ async def webauthn_register_view(request):
     if await User.objects.filter(username=username).aexists():
         return Response(
             {"errors": "Registration error. Username already exists. Please try again."},
+            status=400,
         )
 
     challenge = secrets.token_bytes(128).hex()
@@ -72,23 +75,20 @@ async def webauthn_register_view(request):
 
     options: PublicKeyCredentialCreationOptions = generate_registration_options(
         rp_name=settings.SITE_NAME,
-        rp_id=EXPECTED_RP_ID,
+        rp_id=request.get_host(),
         user_id=user_id.encode('utf-8'),
         user_name=username,
         user_display_name=username,
         challenge=challenge.encode('utf-8'),
         timeout=60000,
+        exclude_credentials=[],
         supported_pub_key_algs=[COSEAlgorithmIdentifier(p) for p in user_pubkey_cred_params],
-        attestation=AttestationConveyancePreference.DIRECT,
+        attestation=AttestationConveyancePreference.NONE,
         authenticator_selection=AuthenticatorSelectionCriteria(
+            resident_key=ResidentKeyRequirement.PREFERRED,
             authenticator_attachment=AuthenticatorAttachment(user_auth_attachment),
-            user_verification=UserVerificationRequirement.REQUIRED,
+            user_verification=UserVerificationRequirement.PREFERRED,
         ),
-        hints=[
-            PublicKeyCredentialHint.SECURITY_KEY,
-            PublicKeyCredentialHint.CLIENT_DEVICE,
-            PublicKeyCredentialHint.HYBRID,
-        ]
     )
 
     json_options = options_to_json(options=options)
@@ -112,34 +112,34 @@ async def webauthn_verify_registration_view(request):
     random = data.get("random", None)
     cached_value = await cache.aget(random, None)
 
+    if not json_cred or not random:
+        return Response(
+            {"errors": REGISTRATION_ERROR},
+            status=400,
+        )
+
     if not cached_value:
         return Response(
             {"errors": "Registration timed out. Please try again."},
             status=400,
         )
 
-    if not json_cred or not random:
-        return Response(
-            {"errors": "Registration error. Please try again."},
-            status=400,
-        )
-
-
     await cache.adelete(random)
 
     challenge, username, user_id = cached_value.split('.|.')
+
     try:
         verified_registration: VerifiedRegistration = verify_registration_response(
             credential=json_cred,
             expected_challenge=challenge.encode('utf-8'),
-            expected_rp_id=EXPECTED_RP_ID,
+            expected_rp_id=request.get_host(),
             expected_origin=EXPECTED_ORIGIN,
             supported_pub_key_algs=SUPPORTED_ALGOS,
         )
     except InvalidRegistrationResponse as e:
         return Response(
             {"errors": REGISTRATION_ERROR.format(e)},
-            status=400
+            status=400,
         )
 
     new_user = await User.objects.acreate(
@@ -147,25 +147,22 @@ async def webauthn_verify_registration_view(request):
         uid=user_id,
     )
 
-    new_creds = await WebAuthnCredential.objects.acreate(
+    await WebAuthnCredential.objects.acreate(
         user=new_user,
-        credential_id=verified_registration.credential_id.decode('utf-8'),
-        public_key=verified_registration.credential_public_key.decode('utf-8'),
-        credential_type=verified_registration.credential_type,
-        device_type=verified_registration.credential_device_type,
+        cred_id=await aencode_b64(verified_registration.credential_id),
+        pub_key=verified_registration.credential_public_key,
+        cred_type=verified_registration.credential_type.name,
+        device_type=verified_registration.credential_device_type.name,
         sign_count=verified_registration.sign_count,
     )
-
-    await new_user.asave()
-    await new_creds.asave()
 
     return Response(
         {
             "message": "Registration successful.",
+            "status": 200,
         },
         status=200,
     )
-
 
 
 @api_view(['POST'])
@@ -211,6 +208,7 @@ async def webauthn_verify_authentication_view(request):
     random = data.get("random")
 
     cached_value = await cache.aget(random, None)
+
     if not cached_value:
         return Response(
             {"errors": "Authentication timed out. Please try again."},
@@ -221,13 +219,21 @@ async def webauthn_verify_authentication_view(request):
 
     challenge, username = cached_value.split('.|.')
 
-    user = await User.objects.aget(username=username)
+    user: AbstractBaseUser | User = await User.objects.aget(username=username)
 
     if not user:
         return Response(
             {"errors": AUTHENTICATION_ERROR},
             status=400
         )
+
+    cred_id = await adecode_json(json_cred['id'])
+
+    cred = await WebAuthnCredential.objects.filter(
+        user__username__exact=username,
+    ).aget(
+        credential_id=cred_id
+    )
 
     try:
         verified_auth: VerifiedAuthentication = verify_authentication_response(
@@ -236,17 +242,17 @@ async def webauthn_verify_authentication_view(request):
             expected_rp_id=EXPECTED_RP_ID,
             expected_origin=EXPECTED_ORIGIN,
             require_user_verification=True,
-            credential_public_key=None,
-            credential_current_sign_count=None,
+            credential_public_key=cred.pub_key,
+            credential_current_sign_count=cred.sign_count,
         )
     except InvalidAuthenticationResponse as e:
         return Response(
             {"errors": AUTHENTICATION_ERROR.format(e)},
             status=400
         )
+    print(verified_auth)
 
-    print("VERIFIED_AUTH",verified_auth)
-
+    await alogin(request, user)
 
     return Response(
         {"message": "Authentication successful."},
