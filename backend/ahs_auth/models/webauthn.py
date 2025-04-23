@@ -1,18 +1,32 @@
+from django.contrib.auth import get_user_model
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
 from django.db.models import UniqueConstraint, Index, DateTimeField, Manager, Model, ForeignKey, CharField
 from django.utils.translation import gettext as _
 
-from backend.ahs_auth.validators import PublicKeyValidator
+from backend.ahs_auth.fields import WebAuthnPublicKeyField
+
+User = get_user_model()
 
 
 class WebAuthnCredentialManager(Manager):
-    async def acreate(self, user, cred_id, pub_key, cred_type, device_type, **kwargs):
+    async def acreate(
+            self,
+            user: AbstractBaseUser | User,
+            cred_id: bytes,
+            pub_key: str,
+            cred_type: str,
+            device_type: str,
+            sign_count: int,
+            **kwargs,
+    ):
         cred = self.model(
             user=user,
             credential_id=cred_id,
             public_key=pub_key,
             credential_type=cred_type,
             device_type=device_type,
+
             **kwargs
         )
         await cred.asave(using=self._db)
@@ -37,13 +51,11 @@ class WebAuthnCredential(Model):
         help_text=_("The credential's unique identifier."),
     )
 
-    public_key = CharField(
-        max_length=512,
+    public_key = WebAuthnPublicKeyField(
         unique=True,
         editable=False,
         verbose_name="WebAuthn Public Key",
         help_text=_("The credential's public key."),
-        validators=[PublicKeyValidator]
     )
 
     sign_count = models.IntegerField(
@@ -79,7 +91,7 @@ class WebAuthnCredential(Model):
         verbose_name = "WebAuthn Credential"
         verbose_name_plural = "WebAuthn Credentials"
         ordering = ['id']
-        db_table = "auth_accounts_webauthn"
+        db_table = "auth_accounts_ahsuser_webauthn"
         unique_together = (('user', 'credential_id', 'public_key'),)
 
         constraints = [

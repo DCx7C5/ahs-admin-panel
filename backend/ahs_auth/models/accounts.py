@@ -92,13 +92,13 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
     )
 
     is_staff = BooleanField(
-        _("staff status"),
+        verbose_name=_("staff status"),
         default=False,
         help_text=_("Designates whether the user can log into this admin site."),
     )
 
     is_active = BooleanField(
-        _("active"),
+        verbose_name=_("is active"),
         default=True,
         help_text=_(
             "Designates whether this user should be treated as active. "
@@ -124,14 +124,13 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         verbose_name=_('Socket URL'),
     )
 
-
     date_joined = DateTimeField(
         verbose_name=_("date joined"),
         default=now,
     )
 
     date_modified = DateTimeField(
-        verbose_name=_('Last Modified'),
+        verbose_name=_('last modified'),
         auto_now=True,
     )
 
@@ -165,3 +164,4 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         return reverse(
             'ahs_auth:user-detail',
             kwargs={'pk': self.pk})
+
