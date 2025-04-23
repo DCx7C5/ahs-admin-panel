@@ -1,15 +1,15 @@
-import React, {createContext, ReactNode, useEffect, useState} from "react";
-import useECCryptography, {cryptoApi} from "../hooks/useECCryptography";
-import useAHSToken from "../hooks/useAHSToken";
+import React, {createContext, ReactNode, useCallback, useEffect, useState} from "react";
 import useAHSApi, {apiClient} from "../hooks/useAHSApi";
 
 
 export interface DataContextType {
     apiCli: apiClient;
-    cryptoCli: cryptoApi;
     isAuthenticated: boolean;
+    setIsAuthenticated: (value: boolean) => void;
     isSuperUser: boolean;
-    user: User | null;
+    setIsSuperUser: (value: boolean) => void;
+    user: User | {};
+    setUserProperty: (key: string, value: string | boolean | number) => void;
 }
 
 
@@ -20,58 +20,46 @@ interface DataProviderProps {
   children: ReactNode;
 }
 
-interface AHSData {
-    options?: any;
-    uid?: string;
-    challenge?: string;
-}
 
 interface User {
     userName: string;
 }
 
-interface Window {
-    __AHS_DATA__?: AHSData;
-}
-
 
 export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
     const apiCli = useAHSApi();
-    //const gpgApi = useGnupg();
-    const cryptoCli = useECCryptography();
-    const {token, get} = useAHSToken(cryptoCli);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isSuperUser, setIsSuperUser] = useState(false);
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<User | {}>({});
 
     useEffect(() => {
-        //console.log(gpgApi.listKeys())
-        if (!token) {
-            console.log("DataProvider | No token")
-            return
-        }
-        apiCli.setRequestInterceptor(token)
         return () => {
-            if (apiCli && cryptoCli) console.log("DataProvider | Unmounting, disconnecting socket")
+            if (apiCli) console.log("DataProvider | Unmounting, disconnecting socket")
             setIsAuthenticated(false)
             setIsSuperUser(false)
             setUser(null)
         }
     }, []);
 
-  return (
-    <DataContext.Provider
-      value={{
-        apiCli,
-        cryptoCli,
-        isAuthenticated,
-        isSuperUser,
-        user,
-      }}
-    >
-      {children}
-    </DataContext.Provider>
-  );
+    const setUserProperty = useCallback( async (key: string, value: string | boolean | number) => {
+        setUser((prevState) => ({...prevState, [key]: value,}))
+    },[setUser, user])
+
+    return (
+        <DataContext.Provider
+            value={{
+            apiCli,
+            isAuthenticated,
+            setIsAuthenticated,
+            isSuperUser,
+            setIsSuperUser,
+            user,
+            setUserProperty,
+        }}
+        >
+        {children}
+        </DataContext.Provider>
+    );
 };
 
 
