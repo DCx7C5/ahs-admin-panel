@@ -20,3 +20,4 @@ trio~=0.27.0
 typing_extensions>=4.12.2
 
 webauthn>=2.5.2
+cbor2>=5.6.5
