@@ -15,9 +15,6 @@ from django.core.management.commands.runserver import Command as RunserverComman
 
 from daphne import __version__
 from daphne.server import Server
-from twisted.internet import reactor
-from twisted.internet.endpoints import SSL4ServerEndpoint
-from twisted.internet.ssl import DefaultOpenSSLContextFactory
 
 logger = logging.getLogger("django.channels.server")
 
