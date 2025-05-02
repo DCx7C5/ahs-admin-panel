@@ -14,7 +14,8 @@ from webauthn.helpers.structs import (
     UserVerificationRequirement,
 )
 
-from backend.ahs_auth.models import WebAuthnCredential
+from backend.ahs_auth.models import WebAuthnCredential, AuthMethod
+
 
 User = get_user_model()
 
@@ -75,6 +76,10 @@ class AHSUserAdmin(UserAdmin):
     def add_webauthn(self):
         pass
 
+
+@admin.register(AuthMethod)
+class AuthMethodAdmin(admin.ModelAdmin):
+    model = AuthMethod
 
 
 @admin.register(WebAuthnCredential)
