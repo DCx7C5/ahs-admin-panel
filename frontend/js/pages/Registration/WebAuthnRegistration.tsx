@@ -32,9 +32,13 @@ export const WebAuthnRegistration: React.FC = () => {
 
     const [formState, formAction, isPending] = useActionState(
         async (prevState, formData) => {
+            // Get username from form
             const userName = formData.get("username") as string;
+
+            // Get publickey algorithm types from form
             const pkCredParams = pubKeyCredParams.filter((param) => param.selected).map((param) => param.value);
 
+            // Get registration options from server
             const optResponse: WebAuthnOptionsResponse = await api?.post('api/auth/webauthn/register/', {
                 username: JSON.stringify(userName),
                 pubkeycredparams: JSON.stringify(pkCredParams),
@@ -44,29 +48,34 @@ export const WebAuthnRegistration: React.FC = () => {
                 return { ...prevState, error: "Failed to get options." };
             }
 
+            // Decode response
             const options = JSON.parse(optResponse.options);
             options.challenge = base64UrlDecode(options.challenge);
             options.user.id = base64UrlDecode(options.user.id);
             options.authenticatorSelection.requireResidentKey = false;
             console.log('OPTIONS',options);
 
-            const credential = await navigator.credentials.create({ publicKey: options }) as PublicKeyCredential;
-            const auth_response = credential.response as AuthenticatorAttestationResponse;
+            //  Create webauthn credential creation attestation
+            const attestation = await navigator.credentials.create(
+                { publicKey: options }
+            ) as PublicKeyCredential;
 
-            const serialized_credential = {
-                id: credential.id,
-                rawId: base64UrlEncode(credential.rawId),
+            const authResponse = attestation.response as AuthenticatorAttestationResponse;
+
+            const serializedCredential = JSON.stringify({
+                id: attestation.id,
+                rawId: base64UrlEncode(attestation.rawId),
                 response: {
-                    clientDataJSON: base64UrlEncode(auth_response.clientDataJSON),
-                    attestationObject: base64UrlEncode(auth_response.attestationObject),
+                    clientDataJSON: base64UrlEncode(authResponse.clientDataJSON),
+                    attestationObject: base64UrlEncode(authResponse.attestationObject),
                 },
-                type: credential.type,
-            }
+                type: attestation.type,
+            })
 
             const verifyResponse: WebAuthnRegistrationVerifyResponse = await api?.post(
                 'api/auth/webauthn/register/verify/',
                 {
-                    credential: serialized_credential,
+                    credential: serializedCredential,
                     random: optResponse.random,
                 })
 
@@ -99,23 +108,23 @@ export const WebAuthnRegistration: React.FC = () => {
 
     return (
         <>
-        <CForm action={formAction} className="form-signin">
-            {formState.error && <div className="alert alert-danger">{formState.error}</div>}
-            <div className="form-floating mb-3">
-                <CFormInput
-                    type="text"
-                    name="username"
-                    className="form-control"
-                    id="username"
-                    placeholder="Username"
-                    required
-                />
-                <CFormLabel htmlFor="username">Username</CFormLabel>
-            </div>
-            <button className="w-100 btn btn-lg btn-primary" type="submit" disabled={isPending}>
-                {isPending ? "Creating account..." : "Register"}
-            </button>
-        </CForm>
+            <CForm action={formAction} className="form-signin">
+                {formState.error && <div className="alert alert-danger">{formState.error}</div>}
+                <div className="form-floating mb-3">
+                    <CFormInput
+                        type="text"
+                        name="username"
+                        className="form-control"
+                        id="username"
+                        placeholder="Username"
+                        required
+                    />
+                    <CFormLabel htmlFor="username">Username</CFormLabel>
+                </div>
+                <button className="w-100 btn btn-lg btn-primary" type="submit" disabled={isPending}>
+                    {isPending ? "Creating account..." : "Register"}
+                </button>
+            </CForm>
             <button onClick={toggleOpen}>
                 Advanced Options
             </button>
