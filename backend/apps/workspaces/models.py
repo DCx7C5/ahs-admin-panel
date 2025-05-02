@@ -1,12 +1,17 @@
 import logging
 
 from django.contrib.auth import get_user_model
-from django.db.models import ForeignKey, CASCADE, BooleanField, Model
+from django.db.models import ForeignKey, CASCADE, BooleanField, Model, Manager
 from django.db.models.indexes import Index
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+
+class WorkspaceManage(Manager):
+    ...
+
 
 
 class Workspace(Model):
@@ -22,6 +27,8 @@ class Workspace(Model):
         default=False,
         editable=True,
     )
+
+    objects = WorkspaceManage()
 
     class Meta:
         app_label = 'ahs_core'

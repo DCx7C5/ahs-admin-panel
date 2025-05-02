@@ -4,6 +4,12 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 
 
+class AppManager(models.Manager):
+    def get_by_natural_key(self, name):
+        return self.get(name=name)
+
+
+
 class App(models.Model):
     """
     Represents an application entity within the system.
@@ -79,6 +85,8 @@ class App(models.Model):
         null=True,
         blank=True,
     )
+
+    objects = AppManager()
 
     def __str__(self):
         return self.verbose_name

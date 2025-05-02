@@ -1,10 +1,8 @@
 
-from django.db.models import Manager, DateTimeField, CharField, Model, Index, IPAddressField, GenericIPAddressField
-from django.db.models.constraints import UniqueConstraint
+from django.db.models import Manager, DateTimeField, CharField, Model
 
 from django.utils.translation import gettext as _
 
-from backend.ahs_core.fields import TokenHeaderField
 
 
 class AHSSessionManager(Manager):
@@ -28,6 +26,11 @@ class AHSSession(Model):
         primary_key=True,
     )
 
+    session_data = CharField(
+        verbose_name=_("token payload"),
+        max_length=1000,
+    )
+
     expire_date = DateTimeField(
         verbose_name=_("expire date"),
         db_index=True,
@@ -40,8 +43,8 @@ class AHSSession(Model):
 
     @classmethod
     def get_session_store_class(cls):
-        from backend.ahs_core.engines import AHSSessionStore
-        return AHSSessionStore
+        from backend.ahs_core.engines import AHSToken
+        return AHSToken
 
     class Meta:
         db_table = "django_session_ahs"

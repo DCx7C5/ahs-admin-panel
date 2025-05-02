@@ -1,12 +1,15 @@
 from django.db.models import (
     Model,
     GenericIPAddressField,
-    DateTimeField, Q,
+    DateTimeField, Q, Manager,
 )
 from django.db.models.constraints import UniqueConstraint, CheckConstraint
 
 from django.utils.translation import gettext_lazy as _
 
+
+class IPAddressManager(Manager):
+    ...
 
 
 class IPAddress(Model):
@@ -29,6 +32,9 @@ class IPAddress(Model):
         auto_now=True,
         help_text=_("The timestamp for the latest update to the IP address."),
     )
+
+    objects = IPAddressManager()
+
 
     class Meta:
         app_label = "ahs_core"

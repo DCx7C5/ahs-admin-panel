@@ -8,7 +8,7 @@ from django.db.models import (
     URLField,
     ForeignKey,
     CharField,
-    ManyToManyField, BooleanField
+    ManyToManyField, BooleanField, Manager
 )
 from django.db.models.constraints import UniqueConstraint
 from django.utils.safestring import mark_safe
@@ -236,6 +236,8 @@ class BookmarksProfile(Model):
         on_delete=CASCADE,
         to_field='id',
     )
+
+    objects = Manager()
 
     class Meta:
         app_label = 'bookmarks'

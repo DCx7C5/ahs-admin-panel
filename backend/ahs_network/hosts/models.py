@@ -127,6 +127,8 @@ class Host(Model):
         help_text=_("The timestamp for the latest update to the host.")
     )
 
+    objects = HostManager()
+
     class Meta:
         app_label = "ahs_core"
         verbose_name = "Host"
