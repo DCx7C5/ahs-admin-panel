@@ -1,4 +1,4 @@
-import React, {createContext, ReactNode, useCallback, useEffect, useState} from "react";
+import React, {createContext, ReactNode, useCallback, useEffect, useRef, useState} from "react";
 import useAHSApi, {apiClient} from "../hooks/useAHSApi";
 
 
@@ -30,20 +30,19 @@ export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
     const apiCli = useAHSApi();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isSuperUser, setIsSuperUser] = useState(false);
-    const [user, setUser] = useState<User | {}>({});
+    const user = useRef<User | {}>({}).current;
 
     useEffect(() => {
+
         return () => {
             if (apiCli) console.log("DataProvider | Unmounting, disconnecting socket")
             setIsAuthenticated(false)
             setIsSuperUser(false)
-            setUser(null)
         }
     }, []);
 
-    const setUserProperty = useCallback( async (key: string, value: string | boolean | number) => {
-        setUser((prevState) => ({...prevState, [key]: value,}))
-    },[setUser, user])
+    const setUserProperty = useCallback( (key: string, value: string | boolean | number) => {
+    },[user])
 
     return (
         <DataContext.Provider
