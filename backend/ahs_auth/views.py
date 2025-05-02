@@ -147,6 +147,8 @@ async def webauthn_verify_registration_view(request):
         uid=user_id,
     )
 
+    await new_user.auth_methods.aadd("webauthn")
+
     await WebAuthnCredential.objects.acreate(
         user=new_user,
         cred_id=await aencode_b64(verified_registration.credential_id),
@@ -167,15 +169,7 @@ async def webauthn_verify_registration_view(request):
 
 @api_view(['POST'])
 async def webauthn_authentication_view(request):
-    data = request.data
 
-    try:
-        username = await adecode_json(data.get("username"))
-    except Exception as e:
-        return Response(
-            {"errors": AUTHENTICATION_ERROR.format(e)},
-            status=400
-        )
 
     challenge = secrets.token_hex(64)
     random = secrets.token_hex(64)
@@ -187,7 +181,7 @@ async def webauthn_authentication_view(request):
         user_verification=UserVerificationRequirement.PREFERRED,
     )
 
-    await cache.aset(f"{random}", f"{challenge}.|.{username}", 600)
+    await cache.aset(f"{random}", f"{challenge}", 600)
 
     json_options = options_to_json(options=options)
 
@@ -209,6 +203,14 @@ async def webauthn_verify_authentication_view(request):
 
     cached_value = await cache.aget(random, None)
 
+    try:
+        username = await adecode_json(data.get("username"))
+    except Exception as e:
+        return Response(
+            {"errors": AUTHENTICATION_ERROR.format(e)},
+            status=400
+        )
+
     if not cached_value:
         return Response(
             {"errors": "Authentication timed out. Please try again."},
@@ -217,7 +219,7 @@ async def webauthn_verify_authentication_view(request):
 
     await cache.adelete(random)
 
-    challenge, username = cached_value.split('.|.')
+    challenge = cached_value
 
     user: AbstractBaseUser | User = await User.objects.aget(username=username)
 
@@ -227,7 +229,10 @@ async def webauthn_verify_authentication_view(request):
             status=400
         )
 
-    cred_id = await adecode_json(json_cred['id'])
+    user_cred = await adecode_json(json_cred)
+
+    cred_id = user_cred.get("id")
+
 
     cred = await WebAuthnCredential.objects.filter(
         user__username__exact=username,

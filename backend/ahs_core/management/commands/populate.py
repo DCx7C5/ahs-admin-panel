@@ -12,6 +12,7 @@ from django.core.management.commands.check import Command as CheckCommand
 from django.core.management.commands.loaddata import Command as LoadDataCommand
 
 from backend.ahs_core.models.apps import App
+from backend.ahs_auth.models.authmethod import AuthMethod
 
 from backend.ahs_endpoints.models import EndPoint
 from backend.ahs_network.hosts.models import Host
@@ -56,7 +57,7 @@ def populate_endpoints():
             elif hasattr(pattern, "pattern"):
                 # Handle individual patterns (leaf nodes)
                 endpoint_path = str(pattern.pattern)
-                if not endpoint_path.endswith("/"):  # Ensure path has a trailing slash
+                if not endpoint_path.endswith("/"):  # Ensure the path has a trailing slash
                     endpoint_path += "/"
 
                 # Create the endpoint if it doesn't already exist
@@ -121,6 +122,7 @@ class Command(BaseCommand):
         try:
             # Step 0: Systemcheck
             CheckCommand().run_from_argv(argv=["manage.py", "check"])
+            self.populate_auth_methods_table()
             self.populate_workspace_table()
             self.populate_ipaddress_table()
             self.populate_bookmarksprofile_table()
@@ -131,20 +133,39 @@ class Command(BaseCommand):
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"An error occurred: {e}"))
 
-
     def load_bookmark_fixtures(self):
         """
         Load bookmark fixtures from a predefined JSON file and update/create bookmarks
         in the database. If the fixture file is missing, skips the operation and
         provides a notice.
         """
-        PATH = "backend/apps/bookmarks/fixtures/bookmarks.json"
-        path_exists = os.path.exists(PATH)
+        path = "backend/apps/bookmarks/fixtures/bookmarks.json"
+        path_exists = os.path.exists(path)
         if path_exists:
             self.stdout.write(self.style.SUCCESS("bookmarks fixture found! Creating/Updating bookmarks now..."))
-            LoadDataCommand().run_from_argv(argv=["manage.py", "loaddata", PATH])
+            LoadDataCommand().run_from_argv(argv=["manage.py", "loaddata", path])
         else:
             self.stdout.write(self.style.NOTICE("Bookmarks fixture not found. Skipping creation."))
+
+    def populate_auth_methods_table(self):
+        """
+        Populates the AuthMethod table in the database with default authentication methods if it is empty.
+
+        This method checks if there are existing AuthMethod entries in the database. If no entries exist,
+        it creates new entries for "keybase", "email", and "webauthn" authentication methods. If entries
+        already exist, the method skips the creation process.
+
+        Raises:
+            ProtectedError: If there are issues during the database query or write operations.
+
+        """
+        exists = AuthMethod.objects.exists()
+        if not exists:
+            self.stdout.write(self.style.WARNING("No authmethod found. Creating a new one now..."))
+            AuthMethod.objects.bulk_create(objs=[AuthMethod(name="keybase"), AuthMethod(name="email"), AuthMethod(name="webauthn")])
+            self.stdout.write(self.style.SUCCESS("Successfully populated auth_accounts_authmethods table."))
+        else:
+            self.stdout.write(self.style.SUCCESS("AuthMethod models found. Skipping creation."))
 
     def populate_apps_table(self):
         """
@@ -172,7 +193,7 @@ class Command(BaseCommand):
 
                 app_label = content_type.app_label
                 model_name = model_class.__name__
-                primary_key_field = model_class._meta.pk.name
+                primary_key_field = model_class._meta.pk.name  # noqa: protected-access
 
                 first_object = model_class.objects.order_by(primary_key_field).first()
 

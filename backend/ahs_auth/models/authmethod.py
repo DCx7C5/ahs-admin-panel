@@ -1,0 +1,38 @@
+from django.db.models import (
+    Model,
+    CharField,
+    Index,
+    UniqueConstraint,
+    Manager,
+)
+from django.utils.translation import gettext as _
+
+
+class AuthMethod(Model):
+
+    name = CharField(
+        max_length=255,
+        editable=False,
+        verbose_name=_("Authentication Method Name"),
+        help_text=_("The name of the authentication method."),
+        null=False,
+        blank=True,
+        default=None
+    )
+
+    objects = Manager()
+
+    class Meta:
+        app_label = "ahs_auth"
+        verbose_name = "Auth Method"
+        verbose_name_plural = "Auth Methods"
+        ordering = ['id']
+        db_table = "auth_accounts_authmethod"
+
+        indexes = [
+            Index(fields=['name'], name='authmethod_name_index'),
+        ]
+
+        constraints = [
+            UniqueConstraint(fields=['name'], name='unique_name_constraint'),
+        ]

@@ -3,11 +3,10 @@ import uuid
 
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.hashers import make_password
-from django.db.models import ImageField
+from django.db.models import ImageField, ManyToManyField
 from django.db.models.constraints import UniqueConstraint
 from django.db.models.fields import UUIDField, DateTimeField, CharField, URLField, BooleanField, EmailField
 from django.db.models.indexes import Index
-
 
 from django.urls import reverse
 from django.utils.timezone import now
@@ -35,7 +34,8 @@ class AHSUserManager(UserManager):
         default values for `is_staff` and `is_superuser` set to True.
 
     """
-    async def acreate_ahs_superuser(self, username, uid, password, **extra_fields):
+
+    async def acreate_ahs_superuser(self, username, password, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
@@ -44,7 +44,7 @@ class AHSUserManager(UserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        user = self._create_user_object(username=username, uid=uid, password=password, **extra_fields)  # noqa
+        user = self._create_user_object(username=username, uid=uuid.uuid4(), password=password, **extra_fields)  # noqa
         await user.asave(using=self._db)
 
         return user
@@ -56,12 +56,21 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
     """
     Custom user model with additional fields and functionality.
     """
+
     name_validator = AHSNameValidator()
     publickey_validator = PublicKeyValidator()
+
+    AUTHENTICATION_METHOD_CHOICES = (
+        ('email', _('E-Mail')),
+        ('webauthn', _('WebAuthn')),
+        ('keybase', _('Keybase')),
+    )
 
     username = CharField(
         verbose_name=_("username"),
         max_length=32,
+        blank=False,
+        db_index=True,
         unique=True,
         help_text=_(
             "Required. 32 characters or fewer. Letters, digits and ./-/_ only."
@@ -134,6 +143,11 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         auto_now=True,
     )
 
+    available_auth = ManyToManyField(
+        "ahs_auth.AuthMethod",
+        verbose_name=_('Available Authentication Methods'),
+        help_text=_('Available authentication methods for this user.'),
+    )
 
     objects = AHSUserManager()
 
