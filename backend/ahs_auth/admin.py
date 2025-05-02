@@ -35,40 +35,45 @@ class AHSUserAdmin(UserAdmin):
         """
         Extends the default method to add custom context to the change form.
         """
-        if obj.pk != 1:
-            return super().render_change_form(request, context, add, change, form_url, obj)
 
         # Generate custom data (e.g., WebAuthn-specific information)
         challenge = secrets.token_bytes(128).hex()
 
         user_id = f"{obj.uid}"
         username = obj.username
+        if obj.is_superuser and not obj.auth_methods.filter(name="webauthn").exists():
 
-        options: PublicKeyCredentialCreationOptions = generate_registration_options(
-            rp_name=settings.SITE_NAME,
-            rp_id=request.get_host(),
-            user_id=user_id.encode('utf-8'),
-            user_name=username,
-            user_display_name=username,
-            challenge=challenge.encode('utf-8'),
-            timeout=60000,
-            exclude_credentials=[],
-            supported_pub_key_algs=[COSEAlgorithmIdentifier(-7),
-                                    COSEAlgorithmIdentifier(-8),
-                                    COSEAlgorithmIdentifier(-257)],
-            attestation=AttestationConveyancePreference.NONE,
-            authenticator_selection=AuthenticatorSelectionCriteria(
-                resident_key=ResidentKeyRequirement.PREFERRED,
-                user_verification=UserVerificationRequirement.PREFERRED,
-            ),
-        )
+            challenge = secrets.token_bytes(128).hex()
+            user_id = f"{obj.uid}"
+            username = obj.username
 
-        json_options = options_to_json(options=options)
+            options: PublicKeyCredentialCreationOptions = generate_registration_options(
+                rp_name=settings.SITE_NAME,
+                rp_id=request.get_host(),
+                user_id=user_id.encode('utf-8'),
+                user_name=username,
+                user_display_name=username,
+                challenge=challenge.encode('utf-8'),
+                timeout=60000,
+                exclude_credentials=[],
+                supported_pub_key_algs=[
+                    COSEAlgorithmIdentifier(-7),
+                    COSEAlgorithmIdentifier(-8),
+                    COSEAlgorithmIdentifier(-257)
+                ],
+                attestation=AttestationConveyancePreference.NONE,
+                authenticator_selection=AuthenticatorSelectionCriteria(
+                    resident_key=ResidentKeyRequirement.PREFERRED,
+                    user_verification=UserVerificationRequirement.PREFERRED,
+                ),
+            )
 
-        # Add the custom options and data to the context passed to the template
-        context.update({
-            "webauthn_options": json_options,  # Dynamic data for WebAuthn
-        })
+            json_options = options_to_json(options=options)
+
+            # Add the custom options and data to the context passed to the template
+            context.update({
+                "webauthn_options": json_options,  # Dynamic data for WebAuthn
+            })
 
         # Call the parent method with updated context
         return super().render_change_form(request, context, add, change, form_url, obj)
