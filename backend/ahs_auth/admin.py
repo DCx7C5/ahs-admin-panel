@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
+from django.urls import path
 from webauthn import generate_registration_options, options_to_json
 from webauthn.helpers.cose import COSEAlgorithmIdentifier
 from webauthn.helpers.structs import (
@@ -36,11 +37,6 @@ class AHSUserAdmin(UserAdmin):
         Extends the default method to add custom context to the change form.
         """
 
-        # Generate custom data (e.g., WebAuthn-specific information)
-        challenge = secrets.token_bytes(128).hex()
-
-        user_id = f"{obj.uid}"
-        username = obj.username
         if obj.is_superuser and not obj.auth_methods.filter(name="webauthn").exists():
 
             challenge = secrets.token_bytes(128).hex()
@@ -77,6 +73,13 @@ class AHSUserAdmin(UserAdmin):
 
         # Call the parent method with updated context
         return super().render_change_form(request, context, add, change, form_url, obj)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:object_id>/add_webauthn/', self.admin_site.admin_view(self.add_webauthn), name='add_webauthn'),
+        ]
+        return custom_urls + urls
 
     def add_webauthn(self):
         pass
