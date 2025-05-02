@@ -24,8 +24,8 @@ class AuthMethod(Model):
 
     class Meta:
         app_label = "ahs_auth"
-        verbose_name = "Auth Method"
-        verbose_name_plural = "Auth Methods"
+        verbose_name = "Authentication Method"
+        verbose_name_plural = "Authentication Methods"
         ordering = ['id']
         db_table = "auth_accounts_authmethod"
 

@@ -156,8 +156,8 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         app_label = "ahs_auth"
-        verbose_name = _("AHS User")
-        verbose_name_plural = _("AHS Users")
+        verbose_name = _("AHS User Account")
+        verbose_name_plural = _("AHS Users Accounts")
         db_table = "auth_accounts_ahsuser"
         ordering = ['id']
 
