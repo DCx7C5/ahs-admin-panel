@@ -11,6 +11,9 @@ interface KeybaseRegistrationProps {
 export const KeybaseRegistration: React.FC = ({api}: KeybaseRegistrationProps) => {
     const [formState, formAction, isPending] = useActionState(
         async (prevState, formData) => {
+            const userName = formData.get("username") as string;
+            console.log("UserName: ", userName, "");
+            await alert("Not implemented yet.")
             return { ...prevState, error: null };
         },
         { error: null }
