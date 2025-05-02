@@ -25,9 +25,12 @@ export const useAHSApi = (): apiClient => {
   const [error, setError] = useState(null);
   const [data, setData] = useState({});
 
-
   useEffect(() => {
-    
+    console.log("useAHSApi initialized")
+
+    return () => {
+      console.log("useAHSApi cleanup")
+    }
   }, []);
 
   const request = useCallback(
