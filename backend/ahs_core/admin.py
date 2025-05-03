@@ -1,13 +1,12 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.models import LogEntry
-from django.contrib.auth import get_user_model
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, Permission
 from django.contrib.sessions.models import Session
 
 from backend.ahs_core.models import AHSSession
 from backend.ahs_core.models.apps import App
+from backend.ahs_network.hosts.models import Host
 
 
 @admin.register(App)
@@ -38,6 +37,7 @@ class AdminLogAdmin(ModelAdmin):
 class PermissionAdmin(ModelAdmin):
     list_display = ('id', 'name', 'content_type', 'codename')
     ordering = ('id',)
+
 
 
 admin.site.unregister(Group)
