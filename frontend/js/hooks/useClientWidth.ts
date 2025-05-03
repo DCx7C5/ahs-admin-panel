@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
-const useClientWidth = (ref) => {
+
+
+const useClientWidth = (ref: React.RefObject<any>) => {
   const [clientWidth, setClientWidth] = useState(100);
 
   useEffect(() => {
