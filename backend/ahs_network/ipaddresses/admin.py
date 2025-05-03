@@ -5,5 +5,7 @@ from backend.ahs_network.ipaddresses.models import IPAddress
 
 
 @admin.register(IPAddress)
-class HostAdmin(ModelAdmin):
-    ordering = ('id',)
+class IPAddressAdmin(ModelAdmin):
+    ordering = ('id', 'address', 'created_at', 'updated_at')
+    list_display = ('id', 'address', 'created_at', 'updated_at')
+    search_fields = ('address',)
