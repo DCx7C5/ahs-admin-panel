@@ -3,6 +3,7 @@ import {BrowserRouter, Route, Routes} from "react-router-dom";
 import DataProvider from "./components/DataProvider";
 import PageSuspenseSpinner from "./components/Spinner";
 
+
 const AuthProtectedRoutes = lazy(() => import("./components/AuthProtectedRoutes")
     .then(module => ({
         default: module.AuthProtectedRoutes
@@ -47,8 +48,6 @@ const Settings = lazy(() => import("./pages/Settings")
 
 
 export const Root = () => {
-
-
   return (
     <DataProvider>
       <Suspense fallback={<PageSuspenseSpinner />}>
