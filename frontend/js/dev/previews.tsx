@@ -1,8 +1,10 @@
 import {ComponentPreview, Previews} from '@react-buddy/ide-toolbox'
 import {PaletteTree} from './palette'
 import RealTimeClock from "../components/Clock";
+import React from "react";
 
-const ComponentPreviews = () => {
+
+export const ComponentPreviews: React.FC = () => {
     return (
         <Previews palette={<PaletteTree/>}>
             <ComponentPreview path="/RealTimeClock">

@@ -8,7 +8,7 @@ JSX Outline. Alternatively, you can insert components from the palette using cod
 action (`alt+insert` / `⌘ N`).
 
 Add components to the palette using `Add to React Palette` intention or via palette editor (look for the corresponding
-link in `palette.jsx`). There are some ready-to-use palettes for popular React libraries which are published as npm
+link in `palette.tsx`). There are some ready-to-use palettes for popular React libraries which are published as npm
 packages and can be added as a dependency:
 
 ```jsx
@@ -37,7 +37,7 @@ export const PaletteTree = () => (
 )
 ```
 
-React Buddy explicitly registers any previewed component in the `previews.jsx` file so that you can specify required
+React Buddy explicitly registers any previewed component in the `previews.tsx` file so that you can specify required
 props.
 
 ```jsx
