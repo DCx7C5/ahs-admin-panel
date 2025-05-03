@@ -1,100 +1,123 @@
-import axios, {AxiosRequestConfig, AxiosResponse} from "axios";
-import React, {useCallback, useEffect, useState} from "react";
+import axios, { AxiosRequestConfig } from "axios";
+import { useCallback, useState } from "react";
+import {base64UrlEncode} from "../components/utils";
+
+type JsonString = string;
+type rdKey = string;
+type rdValue = string | object | {} | ArrayBuffer | number[] | string[] | string[][];
+type requestData = Record<rdKey, rdValue>;
 
 
 export interface apiClient {
-  get: (endpoint: string, requestData?: any, config?: any) => Promise<any>;
-  post: (endpoint: string, requestData?: any, config?: any) => Promise<any>;
+  get: (
+      endpoint: string,
+      data?: requestData,
+  ) => Promise<any>;
+
+  post: (
+    endpoint: string,
+    data?: requestData,
+    json?: JsonString,
+  ) => Promise<any>;
   isLoading: boolean;
-  error: string;
-  data: any;
+  error: string | null;
   setRequestInterceptor: (token: string) => void;
 }
 
 const api = axios.create({
-  baseURL: `${window.location.origin}/`,
-  httpsAgent: false,
+    baseURL: `${window.location.origin}/`,
+    httpsAgent: true,
+    maxContentLength: 5000,
 });
-
-api.defaults.headers.post['Content-Type'] = 'application/json';
-api.defaults.headers.get['Content-Type'] = 'application/json';
 
 
 export const useAHSApi = (): apiClient => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [data, setData] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log("useAHSApi initialized")
+    function encodeTypedArrays(obj: requestData) {
+        const isTypedArray = (value: rdValue) => ArrayBuffer.isView(value);
 
-    return () => {
-      console.log("useAHSApi cleanup")
+        return Object.fromEntries(
+            Object.entries(obj).map(([key, value]) =>
+            isTypedArray(value)
+                ? [key, base64UrlEncode(value.buffer)]
+                : [key, value]
+            )
+        );
     }
-  }, []);
 
-  const request = useCallback(
-    async (endpoint, method="POST", requestData={}, config={}): Promise<AxiosResponse> => {
-      setIsLoading(true);
-      setError(null);
+    const get = useCallback(
+        async (endpoint: string, data: requestData) => {
+            setIsLoading(true);
 
-      try {
-        const requestConfig: AxiosRequestConfig = {
-          url: endpoint, // Endpoint to hit
-          method, // HTTP method (e.g., GET, POST)
-          data: requestData, // Data to send in the request body
-          ...config, // Additional Axios configurations, if provided
-        };
-        const response = await api.request(requestConfig);
+            const response = await api.request({
+                url: endpoint,
+                method: "GET",
+            } as AxiosRequestConfig);
 
-        setData((prev) => ({ ...prev, [endpoint]: response.data }));
-        return response;
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || "Something went wrong");
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
+            setIsLoading(false);
+            return response.data;
+    },[setIsLoading]);
 
-  const get = useCallback(
-    async (endpoint: string, requestData: any = {}, config: any = {}): Promise<AxiosResponse> => {
-      const response = await request(endpoint, 'GET', requestData, config);
-      return response.data;
-    }, [request]
-  );
+    const post = useCallback(async (
+        endpoint: string,
+        data: requestData,
+        json: string,
+        autoEncode: boolean = false,
+    ) => {
+        setIsLoading(true);
+        const cfg: AxiosRequestConfig = {
+            url: endpoint,
+            method: "POST",
+        }
 
-  const post = useCallback(
-    async (endpoint: string, requestData: any = {}, config: any = {}): Promise<AxiosResponse> => {
-      const response = await request(endpoint, 'POST', requestData, config);
-        return response.data;
-    }, [request]
-  );
+        if (json) {
+            cfg.data = json
+            if (cfg.headers) {
+                cfg.headers["Content-Type"] = "application/json"
+            } else if (!cfg.headers) {
+                cfg.headers = {}
+                cfg.headers["Content-Type"] = "application/json"
+            }
+        } else if (data) {
+            cfg.data = data
+        }
 
-  const setRequestInterceptor = useCallback((token: string) => {
-    api.interceptors.request.use(
-      (config) => {
-        config.headers['X-AHS-Token'] = `${token}`;
-        console.log('RequestInterceptor ', config.headers['X-AHS-Token'], '')
-        return config;
-      },
-      (error) => {
-        console.error('RequestInterceptor failed',error);
-        return Promise.reject(error);
-      }
-    );
-  },[])
+        if (autoEncode) {
+            encodeTypedArrays(cfg.data as requestData)
+        }
 
-  return {
-    get,
-    post,
-    isLoading,
-    error,
-    data,
-    setRequestInterceptor,
-  };
+        try {
+            const response = await api.request(cfg);
+            setIsLoading(false);
+            return response.data;
+        } catch (err) {
+            console.error(err);
+            setIsLoading(false);
+            setError(err.message);
+            return null;
+        }
+    }, [setIsLoading, setError]);
+
+    const setRequestInterceptor = useCallback((token: string) => {
+        api.interceptors.request.use(
+            (config) => {
+                config.headers = config.headers || {};
+                config.headers["X-AHS-Token"] = `${token}`;
+                return config;
+            },
+            (error) => Promise.reject(error),
+        );
+    }, []);
+
+    return {
+        get,
+        post,
+        isLoading,
+        error,
+        setRequestInterceptor,
+    }
 };
 
 export default useAHSApi;
