@@ -42,24 +42,27 @@ AUTHENTICATION_ERROR = "Authentication error. Please try again." if not settings
 
 @api_view(['POST'])
 async def webauthn_register_view(request):
-    data = request.data
-    j_username = data.get("username")
-    j_publickey = data.get("pubkeycredparams")
-    j_auth_attachment = data.get("authattachment")
-
-    if not all([j_username, j_publickey, j_auth_attachment]):
-        return Response(
-            {"errors": REGISTRATION_ERROR},
-            status=400,
-        )
-
     try:
-        username = await adecode_json(j_username)
-        user_pubkey_cred_params = await adecode_json(j_publickey)
-        user_auth_attachment = await adecode_json(j_auth_attachment)
+        data = await adecode_json(request.data)
     except Exception as e:
         return Response(
             {"errors": REGISTRATION_ERROR.format(e)},
+            status=400,
+        )
+    print(data)
+    try:
+        username = data.get('username')
+        user_pubkey_cred_params = data.get('pubkeycredparams')
+        user_auth_attachment = data.get('authattachment')
+    except Exception as e:
+        return Response(
+            {"errors": REGISTRATION_ERROR.format(e)},
+            status=400,
+        )
+
+    if not all([username, user_pubkey_cred_params, user_auth_attachment]):
+        return Response(
+            {"errors": REGISTRATION_ERROR},
             status=400,
         )
 
@@ -107,24 +110,32 @@ async def webauthn_register_view(request):
 
 @api_view(['POST'])
 async def webauthn_verify_registration_view(request):
-    data = request.data
-    json_cred = data.get("credential", None)
+    try:
+        json_data = request.data
+        data = await adecode_json(json_data)
+    except Exception as e:
+        return Response(
+            {"errors": REGISTRATION_ERROR.format(e)},
+            status=400,
+        )
+
+    json_cred = data.get("credential")
     random = data.get("random", None)
+
+
     cached_value = await cache.aget(random, None)
+    await cache.adelete(random)
 
     if not json_cred or not random:
         return Response(
             {"errors": REGISTRATION_ERROR},
             status=400,
         )
-
     if not cached_value:
         return Response(
             {"errors": "Registration timed out. Please try again."},
             status=400,
         )
-
-    await cache.adelete(random)
 
     challenge, username, user_id = cached_value.split('.|.')
 
@@ -149,8 +160,7 @@ async def webauthn_verify_registration_view(request):
 
     await new_user.auth_methods.aadd("webauthn")
 
-    await WebAuthnCredential.objects.acreate(
-        user=new_user,
+    await new_user.webauthn_credentials.acreate(
         cred_id=await aencode_b64(verified_registration.credential_id),
         pub_key=verified_registration.credential_public_key,
         cred_type=verified_registration.credential_type.name,
@@ -169,7 +179,6 @@ async def webauthn_verify_registration_view(request):
 
 @api_view(['POST'])
 async def webauthn_authentication_view(request):
-
 
     challenge = secrets.token_hex(64)
     random = secrets.token_hex(64)
@@ -202,6 +211,7 @@ async def webauthn_verify_authentication_view(request):
     random = data.get("random")
 
     cached_value = await cache.aget(random, None)
+    await cache.adelete(random)
 
     try:
         username = await adecode_json(data.get("username"))
@@ -216,8 +226,6 @@ async def webauthn_verify_authentication_view(request):
             {"errors": "Authentication timed out. Please try again."},
             status=400
         )
-
-    await cache.adelete(random)
 
     challenge = cached_value
 
