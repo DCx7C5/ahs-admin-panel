@@ -230,14 +230,21 @@ class UnixFileSystemPath(Model, TreeMixin):
         help_text=_("SHA256 hash of the file content."),
     )
 
+    inode_id = BigIntegerField(
+        blank=True,
+        null=True,
+        verbose_name=_("Inode ID"),
+        help_text=_("Inode ID of the file."),
+    )
+
     objects = UnixPathManager()
 
     class Meta:
         app_label = 'ahs_core'
-        unique_together = (('name', 'path'),)
+        unique_together = (('path', 'inode_id'),)
         verbose_name = _("UNIX File")
         verbose_name_plural = _("UNIX Files")
-        ordering = ['-updated_at', 'path']
+        ordering = ['-modified', 'path']
         db_table = 'ahs_core_filesys_unixfile'
 
     def __str__(self):
