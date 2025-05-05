@@ -9,13 +9,15 @@ const prefixHex = '3060020100301006072a8648ce3d020106052b81040023044930470201010
 
 
 
-export interface cryptoClient {
+export interface cryptoApi {
     encrypt: (data: (ArrayBuffer | ArrayBufferView)) => Promise<string>,
     decrypt: (encryptedPayload: string) => Promise<string>,
-    sign: (data: (ArrayBuffer | ArrayBufferView)) => Promise<null | string>,
-    verify: (data: (ArrayBuffer | ArrayBufferView), signature: ArrayBuffer) => Promise<boolean>,
+    sign: (data: (ArrayBuffer | ArrayBufferView | string)) => Promise<null | string>,
+    verify: (data: (string), signature: string) => Promise<boolean>,
+    persistentStorage: boolean,
+    setServerPublicKey: (serverPublicKey: string) => Promise<void>,
+    getServerPublicKey: () => Promise<CryptoKey | null>,
     generateRandomSalt: () => string,
-    getOrCreateSalt: () => Promise<string | null>,
     generateKeyFromPassword: (password: string, salt: string, type: "argon" | "pbkdf2") => Promise<CryptoKey>,
     getPublicKeyFromDerivedPasswordKey: (derivedKey: CryptoKey) => Promise<ArrayBuffer>,
     keysGenerated: boolean,
@@ -29,30 +31,33 @@ export interface KeyRecord {
     created: string,
 }
 
-export const useCryptography = (): cryptoClient  => {
+export const useECCryptography = (): cryptoApi  => {
     const [keysGenerated, setKeysGenerated] = useState<boolean>(false);
     const [database, setDatabase] = useState<IDBPDatabase | null>(null);
+    const [persistentStorage, setPersistentStorage] = useState<boolean>(true);
     const dbInitialized = useRef<boolean>(false);
     const {size, kdfHash, kdfIterations} = useRef({
         size: hex2ab(orderHex).byteLength * 8,
         kdfHash: 'SHA-256',
-        kdfIterations: 100000,
+        kdfIterations: 1000000,
     }).current
 
     useEffect(() => {
+      // Initialize Database on mount
       if (!dbInitialized.current) {
         initDatabase().then(r => {
           console.log('Initialized indexedDB...');
         });
         dbInitialized.current = true;
       }
-      if (!keysGenerated) {
-
-      }
+      // Check if keys are generated
+      checkKeysGenerated()
 
       return () => {
-          deleteDatabase().then(r => keysGenerated && console.log("Deleted indexedDB..."));
-          setKeysGenerated(false)
+          if (!persistentStorage) {
+            deleteDatabase().then(r => keysGenerated && console.log("Deleted indexedDB..."));
+            setKeysGenerated(false)
+          }
       }
     }, []);
 
@@ -67,19 +72,10 @@ export const useCryptography = (): cryptoClient  => {
 
     async function deleteDatabase(): Promise<void> {
         if (!database) return
-        await database.deleteObjectStore('ahs');
+        await database.deleteObjectStore('keys');
     }
 
-    const getOrCreateSalt = useCallback(async () => {
-        const storSalt = await localStorage.getItem('ahssalt')
-        if (!storSalt) {
-            await localStorage.setItem('ahssalt', generateRandomSalt())
-            return localStorage.getItem('ahssalt');
-        }
-        return storSalt
-    }, [])
-
-    const storeToDb = async (keyType: string, key: CryptoKey): Promise<void> => {
+    async function storeToDb(keyType: string, key: CryptoKey): Promise<void> {
         if (!database) throw new Error("Database not initialized");
 
         try {
@@ -98,7 +94,7 @@ export const useCryptography = (): cryptoClient  => {
         }
       }
 
-    const retrieveFromDb = async (keyType: string):Promise<CryptoKey | null> => {
+    async function retrieveFromDb(keyType: string):Promise<CryptoKey | null> {
         if (!database) return ;
         try {
           const tx = database.transaction("keys", "readonly");
@@ -116,35 +112,34 @@ export const useCryptography = (): cryptoClient  => {
           }
     }
 
-    const getCryptoKey = async (keyType: string): Promise<CryptoKey | null> => {
-        const key = await retrieveFromDb(keyType)
-        if (!key) {
-            console.error("Key not found");
-            return null;
+    function checkKeysGenerated() {
+        if (retrieveFromDb('serverEcdsa') &&
+            retrieveFromDb('serverEcdh') &&
+            retrieveFromDb('decryption')) {
+            setKeysGenerated(true);
         }
-        return key
-      }
+    }
 
-    const storeCryptoKey = async (keyType: string, key: CryptoKey): Promise<void> => {
-        if (!database) {
-            console.error("IndexedDB not initialized");
-            return;
-        }
-        await storeToDb(keyType, key)
-      }
-
-    const sign = useCallback(async (data: ArrayBuffer | ArrayBufferView) => {
+    const sign = useCallback(async (data: ArrayBuffer | ArrayBufferView | string) => {
         try {
-            const privateKey = await getCryptoKey('signing');
+            const privateKey = await retrieveFromDb('signing');
             if (!privateKey) {
                 console.error("Signing key not found");
                 return null; // Return null if the key is missing
             }
 
+            // Convert string data into Uint8Array
+            let dataToSign: ArrayBuffer | ArrayBufferView | string = data;
+
+            if (typeof dataToSign === 'string') {
+                const encoder = new TextEncoder();
+                dataToSign = encoder.encode(dataToSign);
+            }
+
             const signature = await crypto.subtle.sign(
                 { name: 'ECDSA', hash: { name: kdfHash } },
                 privateKey,
-                data
+                dataToSign
             );
 
             return base64UrlEncode(new Uint8Array(signature)); // Return signature as a URL-safe Base64 string
@@ -155,19 +150,22 @@ export const useCryptography = (): cryptoClient  => {
         }
     }, []);
 
-    const verify = useCallback(async (data: ArrayBuffer | ArrayBufferView, signature: ArrayBuffer) => {
+    const verify = useCallback(async (data: string, signature: string) => {
         try {
-            const verificationKey = await getCryptoKey('verification')
+            const verificationKey = await retrieveFromDb('serverEcdsa')
             if (!verificationKey) {
                 console.error("Verification key not found")
                 return null
             }
+            const encoder = new TextEncoder();
+            let dataA = encoder.encode(data);
+            let signatureA = encoder.encode(signature);
 
             return await crypto.subtle.verify(
                 {name: 'ECDSA', hash: {name: kdfHash}},
                 verificationKey,
-                signature,
-                data
+                signatureA,
+                dataA
             );
         } catch (error) {
             console.error("Error verifying signature:", error);
@@ -177,8 +175,8 @@ export const useCryptography = (): cryptoClient  => {
 
     const encrypt = useCallback(async (data: ArrayBuffer | ArrayBufferView) => {
         try {
-            const privateKey = await getCryptoKey('encryption');
-            const foreignPublicKey = await getCryptoKey('server');
+            const privateKey = await retrieveFromDb('encryption');
+            const serverPublicKey = await retrieveFromDb('serverEcdh');
 
             if (!privateKey) {
                 console.error("Keys are missing for encryption");
@@ -186,7 +184,7 @@ export const useCryptography = (): cryptoClient  => {
             }
 
             const sharedSecret = await crypto.subtle.deriveBits(
-                { name: 'ECDH', public: foreignPublicKey },
+                { name: 'ECDH', public: serverPublicKey },
                 privateKey,
                 size
             );
@@ -218,8 +216,8 @@ export const useCryptography = (): cryptoClient  => {
 
     const decrypt = useCallback(async (encryptedPayload: string) => {
         try {
-            const privateKey = await getCryptoKey('decryption');
-            const foreignPublicKey = await getCryptoKey('server');
+            const privateKey = await retrieveFromDb('decryption');
+            const foreignPublicKey = await retrieveFromDb('server');
 
             if (!privateKey) {
                 console.error("Keys are missing for decryption");
@@ -255,7 +253,7 @@ export const useCryptography = (): cryptoClient  => {
             console.error("Error decrypting data:", error);
             throw error;
         }
-    }, [indexedDB]);
+    }, [database]);
 
     const generateRandomSalt = useCallback(
         () => {
@@ -263,21 +261,21 @@ export const useCryptography = (): cryptoClient  => {
             return base64UrlEncode(String.fromCharCode(...random))
     }, [])
 
-    async function generateKeyFromPassword(password: string, salt: string, type: "argon" | "pbkdf2" = "pbkdf2") {
+    const generateKeyFromPassword = async (password: string, salt: string, type: "argon" | "pbkdf2" = "pbkdf2") => {
         const textEncoder = new TextEncoder();
         try {
             const saltAB = textEncoder.encode(salt);
             const passphraseCK = await crypto.subtle.importKey(
                 'raw', textEncoder.encode(password),
                 { name: 'PBKDF2' },
-                false,
-                ['deriveBits', 'deriveKey']
+                true,
+                ['deriveBits', 'deriveKey'],
             );
             const rawPrivateEcKeyAB = await deriveRawPrivate(saltAB, passphraseCK);
             const pkcs8nopubAB = new Uint8Array([ ...hex2ab(prefixHex), ...new Uint8Array(rawPrivateEcKeyAB)])
             const algo = { name: 'ECDSA', namedCurve: curve }
             const privateKeyCK = await crypto.subtle.importKey('pkcs8', pkcs8nopubAB, algo, true, ['sign'] )
-            await storeCryptoKey('signing', privateKeyCK)
+            await storeToDb('signing', privateKeyCK)
             return privateKeyCK
 
         } catch (error) {
@@ -286,8 +284,17 @@ export const useCryptography = (): cryptoClient  => {
         }
     }
 
+    const generateKeyPair = useCallback(async () => {
+        const ecdh = { name: 'ECDH', namedCurve: curve }
+        const ecdsa = { name: 'ECDSA', namedCurve: curve }
 
-    async function deriveRawPrivate(salt: ArrayBuffer, passphraseCK: CryptoKey){
+        const ecdhPair = await crypto.subtle.generateKey(ecdh, true, ['deriveBits'])
+        const ecdsaPair = await crypto.subtle.generateKey(ecdsa, true, ['sign', 'verify'])
+        await storeToDb('ecdsaP', keyPair.privateKey)
+        return keyPair
+    }, [])
+
+    const deriveRawPrivate = async (salt: ArrayBuffer, passphraseCK: CryptoKey) => {
         const algo = { name: 'PBKDF2', salt: salt, iterations: kdfIterations, hash: kdfHash }
         const rawKeyAB = await crypto.subtle.deriveBits(algo, passphraseCK, size)
            const nBI = BigInt('0x' + orderHex);
@@ -304,7 +311,22 @@ export const useCryptography = (): cryptoClient  => {
         return hex2ab(rawKeyHex)
     }
 
-    async function deriveSharedSecret(privateKey: CryptoKey, foreignPublicKey: CryptoKey): Promise<ArrayBuffer> {
+    const getServerVerificationKey = async () => {
+        return await retrieveFromDb('serverEcdsa')
+    }
+
+    const getServerDecryptionKey = async () => {
+        return await retrieveFromDb('serverEcdh')
+    }
+
+    const getPrivateEncryptionKey = async () => {
+        return await retrieveFromDb('encryption')
+    }
+
+    const deriveSharedSecret = async (): Promise<ArrayBuffer | null> => {
+        const foreignPublicKey = await retrieveFromDb('serverEcdh');
+        const privateKey = await retrieveFromDb('privateEcdh');
+        if (!privateKey || !foreignPublicKey) return null;
         return await crypto.subtle.deriveBits(
             {
                 name: "ECDH",
@@ -315,29 +337,26 @@ export const useCryptography = (): cryptoClient  => {
         );
     }
 
-    async function getPublicKeyFromDerivedPasswordKey(derivedKey: CryptoKey): Promise<ArrayBuffer> {
-    if (!derivedKey) {
-        throw new Error("Derived key cannot be null");
-    }
-
-    // Algorithm definition to generate key pair or public key
-    const algo = { name: 'ECDH', namedCurve: curve };
-
-    try {
-            // Create a new key pair using the derived key as input
-            const keyPair = await crypto.subtle.generateKey(algo, true, ["deriveKey"]);
-
-            // Export the public key in SPKI format
-            const publicKey = await crypto.subtle.exportKey('spki', keyPair.publicKey);
-
-            return publicKey;
-        } catch (error) {
-            console.error("Error deriving public key:", error);
-            throw error;
+    const getPublicKeyFromDerivedPasswordKey = async (derivedKey: CryptoKey): Promise<ArrayBuffer> => {
+        if (!derivedKey) {
+            throw new Error("Derived key cannot be null");
         }
+
+        // Algorithm definition to generate key pair or public key
+        const algo = { name: 'ECDH', namedCurve: curve };
+
+        try {
+                // Create a new key pair using the derived key as input
+                crypto.subtle.deriveKey(algo, derivedKey, algo, true, ['deriveKey'])
+                // Export the public key in SPKI format
+                return await crypto.subtle.exportKey('spki', keyPair.publicKey);
+            } catch (error) {
+                console.error("Error deriving public key:", error);
+                throw error;
+            }
     }
 
-    async function cryptoKeyToArrayBuffer(key: CryptoKey): Promise<ArrayBuffer> {
+    const cryptoKeyToArrayBuffer = async (key: CryptoKey): Promise<ArrayBuffer> => {
       const format = key.type === 'private' ? 'pkcs8' : 'spki';
       try {
         return  await window.crypto.subtle.exportKey(format, key);
@@ -347,7 +366,7 @@ export const useCryptography = (): cryptoClient  => {
       }
     }
 
-    async function cryptoKeyToArrayBufferFromJWK(key: CryptoKey): Promise<ArrayBuffer> {
+    const cryptoKeyToArrayBufferFromJWK = async (key: CryptoKey): Promise<ArrayBuffer> => {
       try {
         // Export the CryptoKey in JWK format
         const jwk = await crypto.subtle.exportKey("jwk", key);
@@ -362,6 +381,60 @@ export const useCryptography = (): cryptoClient  => {
       }
     }
 
+    const getServerPublicKey = async () => {
+        const serverPublicKey = await retrieveFromDb('serverEcdsa')
+        if (!serverPublicKey) {
+            console.error("Server public key not found")
+            return null
+        }
+        return serverPublicKey
+    }
+
+async function setServerPublicKey(serverPublicKeyPem: string): Promise<void> {
+      // Step 1: Clean PEM key (remove headers and newlines)
+      const pemHeader = "-----BEGIN PUBLIC KEY-----";
+      const pemFooter = "-----END PUBLIC KEY-----";
+      const pemContents = serverPublicKeyPem
+        .replace(pemHeader, "")
+        .replace(pemFooter, "")
+        .replace(/\s/g, ""); // Remove whitespaces and newlines
+
+      // Step 2: Decode Base64 to ArrayBuffer
+      const binaryDerString = atob(pemContents);
+      const binaryDer = new Uint8Array(binaryDerString.length);
+      for (let i = 0; i < binaryDerString.length; i++) {
+        binaryDer[i] = binaryDerString.charCodeAt(i);
+      }
+
+      // Step 3: Import the CryptoKey
+      const ecdsaKey = await crypto.subtle.importKey(
+        "spki", // Public keys use "spki" (SubjectPublicKeyInfo) format
+        binaryDer.buffer, // ArrayBuffer of the key
+        {
+          name: "ECDSA", // Elliptic Curve Digital Signature Algorithm
+          namedCurve: curve, // Curve name (e.g., "P-521")
+        },
+        true, // Extractable key
+        ["verify"] // Key usage: "verify" for signature verification
+      );
+
+      const ecdhKey = await crypto.subtle.importKey(
+          "spki",
+          binaryDer.buffer,
+          {
+              name: "ECDH",
+              namedCurve: curve,
+          },
+          true,
+          ["deriveKey"]
+      )
+
+      // Step 4: Store or use the key
+      console.log("Successfully imported server public key", ecdsaKey, ecdhKey);
+      await storeToDb("serverEcdsa", ecdsaKey);
+      await storeToDb("serverEcdh", ecdhKey);
+    }
+
     return {
         encrypt,
         decrypt,
@@ -369,7 +442,9 @@ export const useCryptography = (): cryptoClient  => {
         verify,
         keysGenerated,
         generateRandomSalt,
-        getOrCreateSalt,
+        persistentStorage,
+        getServerPublicKey,
+        setServerPublicKey,
         generateKeyFromPassword,
         getPublicKeyFromDerivedPasswordKey,
         cryptoKeyToArrayBuffer,
@@ -377,4 +452,4 @@ export const useCryptography = (): cryptoClient  => {
     };
 }
 
-export default useCryptography;
+export default useECCryptography;
