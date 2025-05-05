@@ -23,7 +23,7 @@ install_pacman() {
 # Detect OS and call the correct function
 if grep -qi 'ID_LIKE=arch' /etc/os-release; then
     install_pacman "$DEPS"
-elif grep -Eqi 'ID=(debian|ubuntu|linuxmint)' /etc/os-release; then
+elif grep -Eqi 'ID_LIKE=(debian|ubuntu|linuxmint)' /etc/os-release; then
     install_apt "$DEPS"
 else
     echo "Unsupported OS."
