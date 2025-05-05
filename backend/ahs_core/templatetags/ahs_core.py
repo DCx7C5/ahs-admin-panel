@@ -3,22 +3,10 @@ from datetime import datetime
 import pytz
 
 from django import template
-
-from django.template import Context
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe
 
 
 register = template.Library()
-
-
-@register.inclusion_tag(filename='lib/_navbar.html', takes_context=True)
-def navbar(context: Context, id, fixed):
-    return {
-        'id': id,
-        'fixed': 'fixed-top' if fixed is True else '',
-        'user': context['user'],
-    }
 
 
 @register.simple_tag(takes_context=True)
