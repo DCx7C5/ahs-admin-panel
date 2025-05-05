@@ -1,6 +1,7 @@
 import React, {useEffect} from "react";
 
-export const RealTimeClock = () => {
+
+export const RealTimeClock: React.FC = () => {
   const [date, setDate] = React.useState(new Date());
 
   useEffect(() => {
