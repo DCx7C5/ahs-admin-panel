@@ -1,3 +1,14 @@
+import hashlib
+from os import PathLike
+import os.path as ospath
+from os import stat, readlink
+from typing import AsyncGenerator
+
+from aiofiles import os as aos
+from aiofiles import ospath as aospath
+from aiofiles import open as aopen_file
+from aiofiles.threadpool.binary import AsyncBufferedReader
+
 from django.db.models.fields import SmallIntegerField
 from magic import Magic
 
@@ -5,9 +16,8 @@ from django.db.models import (
     BigIntegerField,
     BooleanField,
     ForeignKey,
-    JSONField,
     CharField,
-    SET_NULL, DateTimeField, TextField, Model,
+    SET_NULL, DateTimeField, TextField, Model, Manager,
 )
 from django.utils.translation import gettext_lazy as _
 
@@ -19,6 +29,33 @@ from backend.ahs_filesys.fields import (
     MD5HashField,
     SHA256HashField,
 )
+from backend.ahs_network.hosts.models import Host
+
+
+async def aread_chunks(file: AsyncBufferedReader, chunk_size: int = 1024) -> AsyncGenerator[bytes, None]:
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        yield chunk
+
+
+async def aread_file(file: PathLike, cs=1024):
+    b = b''
+    async with aopen_file(file, 'rb') as f:
+        async for chunk in aread_chunks(f, cs):
+            b += chunk
+    return b
+
+
+async def awrite_chunks(file: PathLike, chunks: list[bytes]):
+    async with aopen_file(file, 'wb') as f:
+        for chunk in chunks:
+            await f.write(chunk)
+            await f.flush()
+
+
+
 
 
 class UnixFilesystem(Model):
@@ -50,10 +87,74 @@ class UnixFilesystem(Model):
         return self.name
 
 
-class UnixFilePath(Model, TreeMixin):
-    name = NameField(
-        verbose_name=_("File Name"),
-        help_text=_("The base name of the file."),
+class UnixPathManager(Manager):
+    def create_local_path_reference(self, path: PathLike, host: str = "localhost", description: str = None) -> 'UnixFileSystemPath':
+        path_abs = ospath.abspath(path)
+        path_exists = ospath.exists(path_abs)
+        if not path_exists:
+            raise FileNotFoundError(f"Path does not exist: {path_abs}")
+
+        is_symlink = ospath.islink(path_abs)
+
+        if path_exists and not is_symlink:
+            with open(path_abs, 'rb') as f:
+                md5sum = hashlib.md5(f.read()).hexdigest()
+                sha256sum = hashlib.sha256(f.read()).hexdigest()
+
+        return self.create(
+            path=path_abs,
+            permissions=oct(stat(path_abs).st_mode)[-4:],
+            uid=stat(path_abs).st_uid,
+            gid=stat(path_abs).st_gid,
+            size=stat(path_abs).st_size,
+            host=Host.objects.get(name='localhost'),
+            is_symlink=is_symlink,
+            symlink_target=readlink(path_abs) if is_symlink else None,
+            created=stat(path_abs).st_ctime,
+            modified=stat(path_abs).st_mtime,
+            last_accessed=stat(path_abs).st_atime,
+            hash_md5=md5sum if not is_symlink else None,
+            hash_sha256=sha256sum if not is_symlink else None,
+            description=description,
+        )
+
+    async def acreate_local_path_reference(self, path: PathLike, host: str = 'localhost', description: str = None) -> 'UnixFileSystemPath':
+        path_abs = await aospath.abspath(path)
+        path_exists = await aos.path.exists(path_abs)
+
+        if not path_exists:
+            raise FileNotFoundError(f"Path does not exist: {path_abs}")
+
+        is_symlink = await aos.path.islink(path_abs)
+
+        if path_exists and not is_symlink:
+            async with aopen_file(path_abs, 'rb') as f:
+                md5sum = hashlib.md5(await f.read()).hexdigest()
+                sha256sum = hashlib.sha256(await f.read()).hexdigest()
+
+        return await self.acreate(
+            path=path_abs,
+            permissions=oct((await aos.stat(path_abs)).st_mode)[-4:],
+            uid=(await aos.stat(path_abs)).st_uid,
+            gid=(await aos.stat(path_abs)).st_gid,
+            host=await Host.objects.aget(name=host),
+            is_symlink=is_symlink,
+            symlink_target=(await aos.readlink(path_abs)) if is_symlink else None,
+            created=(await aos.stat(path_abs)).st_ctime,
+            modified=(await aos.stat(path_abs)).st_mtime,
+            last_accessed=(await aos.stat(path_abs)).st_atime,
+            hash_md5=md5sum if not is_symlink else None,
+            hash_sha256=sha256sum if not is_symlink else None,
+            description=description,
+        )
+
+
+class UnixFileSystemPath(Model, TreeMixin):
+
+    path = UnixAbsolutePathField(
+        verbose_name=_("File Path"),
+        help_text=_("Full or relative file path."),
+        unique=True,
     )
 
     permissions = OctalIntegerField(
@@ -73,25 +174,11 @@ class UnixFilePath(Model, TreeMixin):
         help_text=_("Group ID of the file owner."),
     )
 
-    path = UnixAbsolutePathField(
-        verbose_name=_("File Path"),
-        help_text=_("Full or relative file path."),
-        unique=True,
-    )
-
     size = BigIntegerField(
         verbose_name=_("Size (bytes)"),
         null=True,
         blank=True,
         help_text=_("Size of the file in bytes."),
-    )
-
-    checksum = CharField(
-        max_length=128,
-        null=True,
-        blank=True,
-        verbose_name=_("Checksum"),
-        help_text=_("File checksum (e.g. SHA256)."),
     )
 
     is_symlink = BooleanField(
@@ -108,27 +195,18 @@ class UnixFilePath(Model, TreeMixin):
         help_text=_("If symlink, the path it links to."),
     )
 
-    tags = JSONField(
-        default=list,
-        blank=True,
-        verbose_name=_("Tags"),
-        help_text=_("Arbitrary tags or labels for this file."),
+    created = DateTimeField(
+        verbose_name=_("Path creation date"),
     )
 
-    created_at = DateTimeField(
-        auto_now_add=True,
-        verbose_name=_("Record Created"),
-    )
-
-    updated_at = DateTimeField(
-        auto_now=True,
-        verbose_name=_("Record Modified"),
+    modified = DateTimeField(
+        verbose_name=_("Path modification date"),
     )
 
     last_accessed = DateTimeField(
         null=True,
         blank=True,
-        verbose_name=_("Last Accessed"),
+        verbose_name=_("Last Accessed date"),
     )
 
     description = TextField(
@@ -139,18 +217,20 @@ class UnixFilePath(Model, TreeMixin):
     )
 
     hash_md5 = MD5HashField(
-        null=True,
         blank=True,
+        null=True,
         verbose_name=_("MD5 Hash"),
         help_text=_("MD5 hash of the file content."),
     )
 
     hash_sha256 = SHA256HashField(
-        null=True,
         blank=True,
+        null=True,
         verbose_name=_("SHA256 Hash"),
         help_text=_("SHA256 hash of the file content."),
     )
+
+    objects = UnixPathManager()
 
     class Meta:
         app_label = 'ahs_core'
@@ -163,37 +243,27 @@ class UnixFilePath(Model, TreeMixin):
     def __str__(self):
         return f"{self.path} ({self.permissions})"
 
+    def has_changed(self) -> bool:
+        with open(self.path, 'rb') as f:
+            new_sha256 = hashlib.sha256(f.read()).hexdigest()
+            return self.hash_sha256 == new_sha256
+
+    async def ahas_changed(self) -> bool:
+        async with aopen_file(self.path, 'rb') as f:
+            new_sha256 = hashlib.sha256(await f.read()).hexdigest()
+            return self.hash_sha256 == new_sha256
+
     @property
-    def mime_type(self):
+    def mime_type(self) -> str:
         _magic = Magic(mime=True)
         return _magic.from_file(self.path)
 
     @property
-    def file_extension(self):
-        # Return the file extension; empty string if no extension.
-        return self.name.rsplit(".", 1)[-1] if '.' in self.name else ""
+    def file_extension(self) -> str:
+        last_segment = self.path.rsplit("/", 1)[-1]
+        return last_segment.split('.')[-1] if '.' in last_segment else ""
 
-    def has_tag(self, tag):
-        return tag in self.tags if self.tags else False
-
-    def add_tag(self, tag):
-        if self.tags is None:
-            self.tags = []
-        if tag not in self.tags:
-            self.tags.append(tag)
-            self.save()
-        return self.tags
-
-    def remove_tag(self, tag):
-        if self.tags is None:
-            return None
-        if tag in self.tags:
-            self.tags.remove(tag)
-            self.save()
-        return self.tags
-
-    def get_readable_permissions(self):
-        # Converts octal permission to rwx string, e.g. 0o755 -> 'rwxr-xr-x'
+    def get_path_permissions(self):
         perm = self.permissions
         out = ""
         for who in [(perm >> 6) & 0b111, (perm >> 3) & 0b111, perm & 0b111]:
@@ -206,22 +276,22 @@ class UnixFilePath(Model, TreeMixin):
         # Utility to serialize the file to a dict
         data = {
             "id": self.pk,
-            "name": self.name,
             "path": self.path,
             "permissions": self.permissions,
-            "permissions_display": self.get_readable_permissions(),
+            "permissions_display": self.get_path_permissions(),
             "uid": self.uid,
             "gid": self.gid,
             "size": self.size,
-            "checksum": self.checksum,
             "is_symlink": self.is_symlink,
             "symlink_target": self.symlink_target,
-            "tags": self.tags,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
+            "created": self.created,
+            "modified": self.modified,
             "last_accessed": self.last_accessed,
             "description": self.description,
             "file_extension": self.file_extension,
+            "mime_type": self.mime_type,
+            "hash_md5": self.hash_md5,
+            "hash_sha256": self.hash_sha256,
         }
         if include_directory:
             data['parent'] = str(self.parent) if self.parent else None
