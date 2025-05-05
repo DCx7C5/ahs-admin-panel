@@ -124,9 +124,8 @@ class Command(BaseCommand):
             CheckCommand().run_from_argv(argv=["manage.py", "check"])
             self.populate_auth_methods_table()
             self.populate_workspace_table()
-            self.populate_ipaddress_table()
             self.populate_bookmarksprofile_table()
-            self.populate_host_table()
+            self.populate_host_and_ipaddress_table()
             self.populate_apps_table()
             populate_endpoints()
             self.load_bookmark_fixtures()
@@ -254,25 +253,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS("Workspace found. Skipping creation."))
 
-    def populate_ipaddress_table(self):
-        """
-        Populates the IPAddress table with the localhost IP address (127.0.0.1) if it does not exist.
-
-        This method checks the database table for the existence of a localhost IP address.
-        If no entry is found, it will log a warning message and create the localhost IP
-        address in the table. If an entry exists, it logs a success message and skips
-        the creation process.
-        """
-        exists = IPAddress.objects.filter(address__exact="127.0.0.1").exists()
-
-        if not exists:
-            self.stdout.write(self.style.WARNING("No localhost IP found. Creating a new one now..."))
-            IPAddress.objects.create(address="127.0.0.1")
-
-        else:
-            self.stdout.write(self.style.SUCCESS("IPAddress found. Skipping creation."))
-
-    def populate_host_table(self):
+    def populate_host_and_ipaddress_table(self):
         """
         Populates the core_host table with localhost information if no localhost entry
         exists. It creates a new entry for localhost, assigns internal and external IP
