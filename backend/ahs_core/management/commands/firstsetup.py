@@ -49,6 +49,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('Setting up AHS development server...'))
             if not self.check_venv_directory():
                 self.create_venv_directory()
+            if not self.check_capabilities():
+                self.set_capabilities()
             if not self.check_socket_files():
                 self.create_socket_files()
             if not self.check_ssl_certificates():
