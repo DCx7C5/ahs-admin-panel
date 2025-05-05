@@ -1,17 +1,7 @@
 {% extends "base.html" %}
 {% load render_bundle from webpack_loader %}
 {% block title %}Log In{% endblock %}
-{% block extra_head %}
-    {% if DEBUG %}
-    <script src="https://gramthanos.github.io/WebDevAuthn/js/webauthn-dev.js"
-		data-development="true"
-		data-virtual="true"
-		data-pause-with-alert="false"
-		data-instance-of-pub-key="true"
-		data-debugger="true">
-    </script>
-    {% endif %}
-{% endblock %}
+
 {% block content %}
     <div id="root">
         {% render_bundle 'index' 'js' %}
