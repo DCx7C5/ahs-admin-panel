@@ -1,6 +1,7 @@
 import datetime
 import importlib
 import logging
+import os.path
 
 import sys
 from typing import TextIO
@@ -95,6 +96,11 @@ class Command(RunserverCommand):
         )
 
     def handle(self, *args, **options):
+        if (not os.path.exists(BASE_DIR / '.certs/localhost.pem')
+                or not os.path.exists(BASE_DIR / '.certs/localhost-key.pem')
+                or not os.path.exists(BASE_DIR / '.certs/rootCA.pem')):
+            raise ImproperlyConfigured("No virtual python environment found. Please run `python manage.py generatepyvenv` to generate one.")
+
         self.http_timeout = options.get("http_timeout", None)
         self.websocket_handshake_timeout = options.get("websocket_handshake_timeout", 5)
         # Check Channels is installed right
