@@ -5,7 +5,13 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.hashers import make_password
 from django.db.models import ImageField, ManyToManyField
 from django.db.models.constraints import UniqueConstraint
-from django.db.models.fields import UUIDField, DateTimeField, CharField, URLField, BooleanField, EmailField
+from django.db.models.fields import (
+    UUIDField,
+    DateTimeField,
+    URLField,
+    BooleanField,
+    EmailField,
+)
 from django.db.models.indexes import Index
 
 from django.urls import reverse
@@ -14,6 +20,7 @@ from django.utils.translation import gettext as _
 from django.contrib.auth.models import UserManager, PermissionsMixin
 
 from backend.ahs_auth.validators import AHSNameValidator, PublicKeyValidator
+from backend.ahs_core.fields import NameField
 
 logger = logging.getLogger(__name__)
 
@@ -66,18 +73,21 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         ('keybase', _('Keybase')),
     )
 
-    username = CharField(
+    username = NameField(
         verbose_name=_("username"),
+        min_length=4,
         max_length=32,
         blank=False,
         db_index=True,
         unique=True,
         help_text=_(
-            "Required. 32 characters or fewer. Letters, digits and ./-/_ only."
+            "Required. 4-32 characters. Letters, digits and ./-/_ only."
         ),
         validators=[name_validator],
         error_messages={
             "unique": _("A user with that username already exists."),
+            "short": _("This username is too short. It must contain at least 4 characters."),
+            "long": _("This username is too long. It must contain at most 32 characters."),
         },
     )
 
@@ -86,18 +96,30 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         blank=True,
     )
 
-    first_name = CharField(
+    first_name = NameField(
         verbose_name=_("first name"),
+        min_length=1,
         max_length=32,
         blank=True,
         validators=[name_validator],
+        help_text=_("Optional. 1-32 characters. Letters, digits and ./-/_ only."),
+        error_messages={
+            "short": _("This username is too short. It must contain at least 4 characters."),
+            "long": _("This username is too long. It must contain at most 32 characters."),
+        },
     )
 
-    last_name = CharField(
+    last_name = NameField(
         verbose_name=_("last name"),
-        max_length=150,
+        min_length=1,
+        max_length=32,
         blank=True,
         validators=[name_validator],
+        help_text=_("Optional. 1-32 characters. Letters, digits and ./-/_ only."),
+        error_messages={
+            "short": _("This username is too short. It must contain at least 4 characters."),
+            "long": _("This username is too long. It must contain at most 32 characters."),
+        },
     )
 
     is_staff = BooleanField(
@@ -120,6 +142,8 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         default=uuid.uuid4,
         editable=False,
         verbose_name=_('User UUID'),
+        db_index=True,
+        help_text=_('Unique identifier for the user.'),
     )
 
     image = ImageField(
@@ -136,11 +160,13 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
     date_joined = DateTimeField(
         verbose_name=_("date joined"),
         default=now,
+        help_text=_("The date and time when the user was created."),
     )
 
     date_modified = DateTimeField(
         verbose_name=_('last modified'),
         auto_now=True,
+        help_text=_('The date and time when the user was last modified.'),
     )
 
     available_auth = ManyToManyField(
@@ -175,7 +201,10 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         ]
 
     def get_absolute_url(self) -> str:
-        return reverse(
-            'ahs_auth:user-detail',
-            kwargs={'pk': self.pk})
+        return reverse('ahs_auth:user-detail', kwargs={'pk': self.pk})
 
+    def has_webauthn_creds(self):
+        return self.webauthn_credentials.exists()
+
+    async def ahas_webauthn_creds(self):
+        return await self.webauthn_credentials.aexists()
