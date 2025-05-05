@@ -36,6 +36,7 @@ services:
       - ./frontend:/project
       - ./.certs/localhost.pem:/project/.certs/localhost.pem
       - ./.certs/localhost-key.pem:/project/.certs/localhost-key.pem
+      - ./.certs/rootCA.pem:/project/.certs/rootCA.pem
 
   redis:
     build:
