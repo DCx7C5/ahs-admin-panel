@@ -1,8 +1,5 @@
 #!/bin/bash
 
-DEPS=mkcert
-
-
 install_apt() {
     echo "Detected Debian-based system."
     echo "Updating package lists..."
@@ -19,14 +16,15 @@ install_pacman() {
     sudo pacman -S --noconfirm "$@"
 }
 
+echo -e "Installing ssl certificates for localhost and 127.0.0.1"
 
 # Detect OS and call the correct function
 if grep -qi 'ID_LIKE=arch' /etc/os-release; then
-    install_pacman "$DEPS"
+    install_pacman mkcert
 elif grep -Eqi 'ID_LIKE=(debian|ubuntu|linuxmint)' /etc/os-release; then
-    install_apt "$DEPS"
+    install_apt mkcert
 else
-    echo "Unsupported OS."
+    echo -e "\e[1;31mUnsupported OS.\e[0m"
     exit 1
 fi
 
