@@ -1,5 +1,5 @@
 import React, {createContext, ReactNode, useCallback, useEffect, useRef, useState} from "react";
-import useAHSApi, {apiClient} from "../hooks/useAHSApi";
+import useApiAxios, {apiClient} from "../hooks/useApiAxios";
 
 
 export interface DataContextType {
@@ -27,7 +27,7 @@ interface User {
 
 
 export const DataProvider: React.FC<DataProviderProps> = ({children}) => {
-    const apiCli = useAHSApi();
+    const apiCli = useApiAxios();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isSuperUser, setIsSuperUser] = useState(false);
     const user = useRef<User | {}>({}).current;

@@ -16,8 +16,7 @@ export interface apiClient {
 
   post: (
     endpoint: string,
-    data?: requestData,
-    json?: JsonString,
+    data?: requestData | JsonString,
   ) => Promise<any>;
   isLoading: boolean;
   error: string | null;
@@ -31,7 +30,7 @@ const api = axios.create({
 });
 
 
-export const useAHSApi = (): apiClient => {
+export const useApiAxios = (): apiClient => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -62,26 +61,23 @@ export const useAHSApi = (): apiClient => {
 
     const post = useCallback(async (
         endpoint: string,
-        data: requestData,
-        json: string,
+        data: requestData | JsonString,
         autoEncode: boolean = false,
     ) => {
         setIsLoading(true);
         const cfg: AxiosRequestConfig = {
             url: endpoint,
             method: "POST",
+            data: data,
         }
 
-        if (json) {
-            cfg.data = json
+        if (typeof data === "string") {
             if (cfg.headers) {
                 cfg.headers["Content-Type"] = "application/json"
             } else if (!cfg.headers) {
                 cfg.headers = {}
                 cfg.headers["Content-Type"] = "application/json"
             }
-        } else if (data) {
-            cfg.data = data
         }
 
         if (autoEncode) {
@@ -120,4 +116,4 @@ export const useAHSApi = (): apiClient => {
     }
 };
 
-export default useAHSApi;
+export default useApiAxios;
