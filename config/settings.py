@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'graphene_django',
 
     # More Core Apps
+    'backend.ahs_filesys',
     'backend.ahs_network',
     'backend.ahs_network.domains',
     'backend.ahs_network.hosts',
