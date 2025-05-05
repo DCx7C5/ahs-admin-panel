@@ -11,6 +11,7 @@ from django.db.models import (
     CASCADE,
     CharField, Model, Index,
 )
+from django.db.models.constraints import UniqueConstraint
 from django.utils.translation import gettext as _
 
 from backend.ahs_core.models.mixins import (
@@ -173,3 +174,72 @@ class Post(Model, UpdateDateMixin):
             'reply_settings',
             'withheld',
         )"""
+
+
+class XApiCredential(Model):
+
+    consumer_key = CharField(
+        max_length=100,
+        unique=True,
+        help_text=_('Consumer Key of an XApiCredential'),
+    )
+
+    consumer_secret = CharField(
+        max_length=100,
+        unique=True,
+        help_text=_('Consumer Secret of an XApiCredential'),
+    )
+
+    access_token = CharField(
+        max_length=100,
+        unique=True,
+        help_text=_('Access Token of an XApiCredential'),
+    )
+
+    access_token_secret = CharField(
+        max_length=100,
+    )
+
+    bearer_token = CharField(
+        max_length=100,
+        unique=True,
+        help_text=_('Bearer Token of an XApiCredential'),
+    )
+
+    owner = ForeignKey(
+        "xapi.UserProfile",
+        on_delete=CASCADE,
+        related_name='xapi_credentials',
+        help_text=_('Owner of an XApiCredential'),
+    )
+
+    class Meta:
+        app_label = 'xapi'
+        db_table = 'apps_xapi_xapicredential'
+        verbose_name = 'XApiCredential'
+        verbose_name_plural = 'XApiCredentials'
+        unique_together = ('consumer_key', 'consumer_secret', 'access_token', 'access_token_secret', 'bearer_token')
+        ordering = (
+            'consumer_key',
+            'consumer_secret',
+            'access_token',
+            'access_token_secret',
+            'bearer_token',
+        )
+
+        indexes = [
+            Index(fields=['consumer_key']),
+            Index(fields=['consumer_secret']),
+            Index(fields=['access_token']),
+            Index(fields=['access_token_secret']),
+            Index(fields=['bearer_token']),
+        ]
+
+        constraints = [
+            UniqueConstraint(fields=['consumer_key', 'consumer_secret'], name='unique_consumer_key_consumer_secret_constraint'),
+            UniqueConstraint(fields=['access_token', 'access_token_secret'], name='unique_access_token_access_token_secret_constraint'),
+            UniqueConstraint(fields=['bearer_token'], name='unique_bearer_token_constraint'),
+        ]
+
+    def __str__(self):
+        return f"{self.consumer_key} - {self.consumer_secret}"
