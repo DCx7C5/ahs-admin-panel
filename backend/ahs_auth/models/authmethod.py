@@ -27,7 +27,7 @@ class AuthMethod(Model):
         verbose_name = "Authentication Method"
         verbose_name_plural = "Authentication Methods"
         ordering = ['id']
-        db_table = "auth_accounts_authmethod"
+        db_table = "auth_authmethod"
 
         indexes = [
             Index(fields=['name'], name='authmethod_name_index'),
