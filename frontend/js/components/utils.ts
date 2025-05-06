@@ -50,6 +50,9 @@ function inspectFunction(func: Function){
         });
 }
 
+type binString = string;
+type b64string = string;
+
 /**
  * Converts an ArrayBuffer to its hexadecimal string representation.
  *
@@ -89,9 +92,9 @@ export function str2ab(str) {
  * Converts an ArrayBuffer to a string.
  *
  * @param {ArrayBuffer | Uint8Array} buffer - The ArrayBuffer or Uint8Array to be converted.
- * @return {string} The resulting string.
+ * @return {binString} The resulting string.
  */
-export function ab2str(buffer: ArrayBuffer | Uint8Array): string {
+export function ab2str(buffer: ArrayBuffer | Uint8Array): binString {
   const bufView = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   let result = '';
   for (let i = 0; i < bufView.length; i++) {
@@ -100,75 +103,52 @@ export function ab2str(buffer: ArrayBuffer | Uint8Array): string {
   return result;
 }
 
-
-const BASE64_URL_SAFE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-
-
 /**
- * A `Uint8Array` instance named `lookup` that provides an array with a fixed length of 256 bytes.
- * Commonly used to store or lookup values based on an 8-bit unsigned integer key, where each element is a number between 0 and 255.
- */
-const lookup = new Uint8Array(256);
-for (let i = 0; i < BASE64_URL_SAFE_CHARS.length; i++) {
-  lookup[BASE64_URL_SAFE_CHARS.charCodeAt(i)] = i;
+ * Converts a string or binary string to a Base64 (URL-safe) string.
+ *
+ *
+ * */
+export function base64Encode(
+    value: ArrayBuffer | Uint8Array | string,
+    safe: boolean = false
+): b64string {
+    if (typeof value !== "string") {
+        value = ab2str<binString>(value);
+    }
+    let b64str = btoa(value);
+
+    if (safe) {
+        b64str = b64str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    return b64str
 }
 
-
 /**
- * Encodes the given ArrayBuffer into a Base64 URL-safe string.
+ * Converts a Base64 (URL-safe) string to a string.
  *
- * @param {ArrayBuffer} arraybuffer - The input array buffer to be encoded.
- * @return {string} The URL-safe Base64 encoded string.
- */
-// Encode ArrayBuffer to Base64 URL-safe string
-export function base64UrlEncode(arraybuffer: ArrayBuffer): string {
+ *
+ * */
+export function base64DecodeToString(value: b64string): string {
 
-  // Convert ArrayBuffer to binary string
-  const bytes = new Uint8Array(arraybuffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
+    // Validate input
+    if (!/^[A-Za-z0-9\-_]+$/.test(value)) {
+        throw new Error('Invalid Base64 URL-safe string');
+    }
 
-  // Use btoa for Base64 encoding and make it URL-safe
-  let base64 = btoa(binary);
-  base64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    // Add padding if necessary and convert to standard Base64
+    let padded = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padLength = (4 - (padded.length % 4)) % 4;
+    padded += '='.repeat(padLength);
+    return atob(padded);
 
-  return base64;
 }
-
-
 /**
- * Decodes a Base64 URL-safe string into an ArrayBuffer.
+ * Converts a Base64 (URL-safe) string to an arraybuffer / bytestring.
  *
- * @param {string} base64 - The Base64 URL-safe encoded string to decode. It should only contain characters
- * in the set [A-Za-z0-9\-_].
- * @param str_out
- * @return {ArrayBuffer} The decoded data as an ArrayBuffer.
- * @throws {Error} Throws an error if the input string is not a valid Base64 URL-safe encoded string.
- */
-export function base64UrlDecode(base64: string, str_out: boolean = false): string | ArrayBuffer {
-
-  // Validate input
-  if (!/^[A-Za-z0-9\-_]+$/.test(base64)) {
-    throw new Error('Invalid Base64 URL-safe string');
-  }
-
-  // Add padding if necessary and convert to standard Base64
-  let padded = base64.replace(/-/g, '+').replace(/_/g, '/');
-  const padLength = (4 - (padded.length % 4)) % 4;
-  padded += '='.repeat(padLength);
-
-  // Decode using atob
-  const binary = atob(padded);
-
-  // Convert binary string to ArrayBuffer
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  if (str_out) return ab2str(bytes.buffer);
-  return bytes.buffer;
+ *
+ * */
+export function base64Decode(value: b64string): ArrayBuffer | Uint8Array {
+    return str2ab(base64DecodeToString(value));
 }
 
 export { inspectFunction };

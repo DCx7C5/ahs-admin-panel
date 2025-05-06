@@ -402,13 +402,12 @@ async def aencode_b64(data: str | bytes, url_safe: bool = False, encoding: str =
     return await sync_to_async(encode_b64)(data, url_safe, encoding)
 
 
-def decode_b64(base64_str: str, url_safe: bool = False, to_str: bool = False, encoding: str = 'utf-8') -> bytes | str:
+def decode_b64(base64_str: str, to_str: bool = False, encoding: str = 'utf-8') -> bytes | str:
     """
     Decodes a Base64 string into bytes or a string, handling standard or URL-safe encoding.
 
     Args:
         base64_str (str): The Base64 string to decode.
-        url_safe (bool): If True, handle URL-safe Base64 encoding (default: False).
         to_str (bool): If True, return a string instead of bytes.
         encoding (str): The encoding to use for string output (default: 'utf-8').
 
@@ -423,11 +422,7 @@ def decode_b64(base64_str: str, url_safe: bool = False, to_str: bool = False, en
     if not isinstance(base64_str, str):
         raise TypeError("Input must be a string")
 
-    padded = base64_str
-    if url_safe:
-        padded = padded.replace('-', '+').replace('_', '/')
-
-    # Add padding if needed
+    padded = base64_str.replace('-', '+').replace('_', '/')
     padding_needed = (4 - len(padded) % 4) % 4
     padded += '=' * padding_needed
 
@@ -438,11 +433,12 @@ def decode_b64(base64_str: str, url_safe: bool = False, to_str: bool = False, en
         raise ValueError("Failed to decode Base64 string") from e
 
 
-async def adecode_b64(data: str, url_safe: bool = False, to_str: bool = False, encoding: str = 'utf-8') -> bytes | str:
+async def adecode_b64(data: str, to_str: bool = False, encoding: str = 'utf-8') -> bytes | str:
     """
     Asynchronously decode a Base64 encoded string, optionally handling URL-safe encoding.
     """
-    return await sync_to_async(decode_b64)(data, url_safe, to_str, encoding)
+    return await sync_to_async(decode_b64)(data, to_str, encoding)
+
 
 def decode_json(data: str) -> dict:
     """

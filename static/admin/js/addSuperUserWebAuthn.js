@@ -4,7 +4,17 @@ const optUrl = `${baseUrl}api/auth/webauthn/register/`;
 const verifyUrl = `${baseUrl}api/auth/webauthn/register/verify/`;
 
 
-const ab2str = async (buffer) => {
+function str2ab(str) {
+  const buf = new ArrayBuffer(str.length);
+  const bufView = new Uint8Array(buf);
+  for (let i = 0, strLen = str.length; i < strLen; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+  return buf;
+}
+
+
+function ab2str(buffer) {
   const bufView = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   let result = '';
   for (let i = 0; i < bufView.length; i++) {
@@ -13,44 +23,33 @@ const ab2str = async (buffer) => {
   return result;
 }
 
-const base64UrlEncode = (arraybuffer) =>  {
 
-  // Convert ArrayBuffer to binary string
-  const bytes = new Uint8Array(arraybuffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
+function base64Encode(value, safe = false) {
+    if (typeof value !== "string") {
+        value = ab2str(value);
+    }
+    let b64str = btoa(value);
 
-  // Use btoa for Base64 encoding and make it URL-safe
-  let base64 = btoa(binary);
-  base64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  return base64;
+    if (safe) {
+        b64str = b64str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    return b64str
 }
 
-const base64UrlDecode = (base64, str_out = false) => {
 
-    // Validate input
-    if (!/^[A-Za-z0-9\-_]+$/.test(base64)) {
-      throw new Error('Invalid Base64 URL-safe string');
+function base64DecodeToString(value) {
+    if (!/^[A-Za-z0-9\-_]+$/.test(value)) {
+        throw new Error('Invalid Base64 URL-safe string');
     }
-
-    // Add padding if necessary and convert to standard Base64
-    let padded = base64.replace(/-/g, '+').replace(/_/g, '/');
+    let padded = value.replace(/-/g, '+').replace(/_/g, '/');
     const padLength = (4 - (padded.length % 4)) % 4;
     padded += '='.repeat(padLength);
+    return atob(padded);
+}
 
-    // Decode using atob
-    const binary = atob(padded);
 
-    // Convert binary string to ArrayBuffer
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    if (str_out) return ab2str(bytes.buffer);
-    return bytes.buffer;
+function base64Decode(value) {
+    return str2ab(base64DecodeToString(value));
 }
 
 
@@ -93,9 +92,9 @@ const cleanUpEventListeners = async () => {
                     return;
                 }
                 const options = JSON.parse(decResponse.options);
-                options.challenge = base64UrlDecode(options.challenge);
+                options.challenge = base64Decode(options.challenge);
                 console.log("CHALLENGE", options.challenge);
-                options.user.id = base64UrlDecode(options.user.id);
+                options.user.id = base64Decode(options.user.id);
                 console.log("USER ID", options.user.id);
                 options.authenticatorSelection.requireResidentKey = false;
                 console.log('OPTIONS',options);
@@ -106,10 +105,10 @@ const cleanUpEventListeners = async () => {
 
                 const serializedCredential = JSON.stringify({
                     id: attestation.id,
-                    rawId: base64UrlEncode(attestation.rawId),
+                    rawId: base64Encode(attestation.rawId, true),
                     response: {
-                        clientDataJSON: base64UrlEncode(authResponse.clientDataJSON),
-                        attestationObject: base64UrlEncode(authResponse.attestationObject),
+                        clientDataJSON: base64Encode(authResponse.clientDataJSON, true),
+                        attestationObject: base64Encode(authResponse.attestationObject, true),
                     },
                     type: attestation.type,
                 })

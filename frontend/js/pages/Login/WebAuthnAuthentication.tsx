@@ -1,8 +1,9 @@
-import React, {use, useActionState} from "react";
+import React, {use, useActionState, useEffect, useState} from "react";
 import {CForm, CFormInput, CFormLabel} from "@coreui/react";
 import {DataContext} from "../../components/DataProvider";
 import {useNavigate} from "react-router-dom";
-import {base64UrlDecode, base64UrlEncode} from "../../components/utils";
+import {base64Decode, base64Encode} from "../../components/utils";
+import {apiClient} from "../../hooks/useApiAxios";
 
 interface WebAuthnOptionsResponse {
     message: string;
@@ -17,21 +18,21 @@ interface WebAuthnAuthenticationVerifyResponse {
 
 
 export const WebAuthnAuthentication: React.FC = () => {
-    const {apiCli, } = use(DataContext);
+    const api = use(DataContext)?.apiCli as apiClient;
     const navigate = useNavigate();
-
+    const [authSuccess, setAuthSuccess] = useState(false);
 
     const [formState, formAction, isPending] = useActionState(
         async (prevState, formData) => {
             const userName = formData.get("username") as string;
 
-            const optResponse: WebAuthnOptionsResponse = await apiCli?.post('api/auth/webauthn/')
+            const optResponse: WebAuthnOptionsResponse = await api?.post('api/auth/webauthn/')
             if (!optResponse.random || !optResponse.options) {
                 return { ...prevState, error: "Failed to get options." };
             }
 
             const options = JSON.parse(optResponse.options);
-            options.challenge = base64UrlDecode(options.challenge);
+            options.challenge = base64Decode(options.challenge);
 
             const assertion = await navigator.credentials.get({
                 publicKey: options as PublicKeyCredentialRequestOptions,
@@ -41,26 +42,31 @@ export const WebAuthnAuthentication: React.FC = () => {
 
             const serializedCredential = JSON.stringify({
                 id: assertion.id,
-                rawId: base64UrlEncode(assertion.rawId),
+                rawId: base64Encode(assertion.rawId, true),
                 response: {
-                    clientDataJSON: base64UrlEncode(authResponse.clientDataJSON),
-                    attestationObject: base64UrlEncode(authResponse.authenticatorData),
-                    signature: base64UrlEncode(authResponse.signature),
+                    clientDataJSON: base64Encode(authResponse.clientDataJSON, true),
+                    attestationObject: base64Encode(authResponse.authenticatorData, true),
+                    signature: base64Encode(authResponse.signature, true),
                     userHandle: authResponse.userHandle
-                        ? base64UrlEncode(authResponse.userHandle)
+                        ? base64Encode(authResponse.userHandle, true)
                         : null,
                 },
                 type: assertion.type,
             })
 
-            const verifyResponse: WebAuthnAuthenticationVerifyResponse = await apiCli?.post('api/auth/webauthn/verify/', {
-                credential: serializedCredential,
-                random: optResponse.random,
-                username: JSON.stringify(userName),
-            })
-
+            const verifyResponse: WebAuthnAuthenticationVerifyResponse = await api?.post(
+                'api/auth/webauthn/verify/',
+                JSON.stringify({
+                    credential: serializedCredential,
+                    random: optResponse.random,
+                    username: userName,
+                })
+            )
+            console.log("VERIFY RESPONSE: ", verifyResponse, "")
             if (verifyResponse && verifyResponse.status === 200) {
+                setAuthSuccess(true);
                 // set user
+                console.log("AUTH SUCCESS")
                 return { ...prevState, error: null };
 
             } else {
@@ -69,6 +75,13 @@ export const WebAuthnAuthentication: React.FC = () => {
         },
         { error: null }
     );
+
+    useEffect(() => {
+        if (authSuccess && !isPending) {
+            navigate("/", { replace: true })
+        }
+
+    }, [authSuccess, isPending, navigate]);
 
     return (
         <>

@@ -2,7 +2,7 @@ import {apiClient} from "../../hooks/useApiAxios";
 import React, {use, useActionState, useEffect, useState} from "react";
 import {CForm, CFormInput, CFormLabel} from "@coreui/react";
 import {DataContext} from "../../components/DataProvider";
-import {base64UrlDecode, base64UrlEncode} from "../../components/utils";
+import {base64Decode, base64Encode} from "../../components/utils";
 import {useNavigate} from "react-router-dom";
 
 
@@ -23,10 +23,10 @@ export const WebAuthnRegistration: React.FC = () => {
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [authAttachment, setAuthAttachment] = useState<AuthenticatorAttachment>("platform");
-    const [isRegistered, setIsRegistered] = useState(false);
+    const [registrationSuccess, setRegistrationSuccess] = useState(false);
     const [pubKeyCredParams, setPubKeyCredParams] = useState<{ value: COSEAlgorithmIdentifier; label: string; selected: boolean }[]>([
-        { value: -8, label: "Ed25519", selected: true},
         { value: -7, label: "ECDSA w/ SHA-256", selected: true },
+        { value: -8, label: "Ed25519", selected: true},
         { value: -257, label: "RSASSA-PKCS1-v1_5 w/ SHA-256", selected: true },
     ]);
 
@@ -57,8 +57,8 @@ export const WebAuthnRegistration: React.FC = () => {
 
             // Decode response
             const options = JSON.parse(optResponse.options);
-            options.challenge = base64UrlDecode(options.challenge);
-            options.user.id = base64UrlDecode(options.user.id);
+            options.challenge = base64Decode(options.challenge);
+            options.user.id = base64Decode(options.user.id);
             options.authenticatorSelection.requireResidentKey = false;
             console.log('OPTIONS',options);
 
@@ -67,14 +67,14 @@ export const WebAuthnRegistration: React.FC = () => {
                 { publicKey: options }
             ) as PublicKeyCredential;
 
+            // Encode credential for server verification
             const authResponse = attestation.response as AuthenticatorAttestationResponse;
-
             const serializedCredential = JSON.stringify({
                 id: attestation.id,
-                rawId: base64UrlEncode(attestation.rawId),
+                rawId: base64Encode(attestation.rawId, true),
                 response: {
-                    clientDataJSON: base64UrlEncode(authResponse.clientDataJSON),
-                    attestationObject: base64UrlEncode(authResponse.attestationObject),
+                    clientDataJSON: base64Encode(authResponse.clientDataJSON, true),
+                    attestationObject: base64Encode(authResponse.attestationObject, true),
                 },
                 type: attestation.type,
             })
@@ -87,7 +87,8 @@ export const WebAuthnRegistration: React.FC = () => {
                 }))
 
             if (verifyResponse && verifyResponse.status === 200) {
-                setIsRegistered(true);
+                setRegistrationSuccess(true);
+                console.log("REGISTRATION SUCCESS")
                 return { ...prevState, error: null };
 
             } else {
@@ -106,11 +107,11 @@ export const WebAuthnRegistration: React.FC = () => {
     };
 
     useEffect(() => {
-        if (isRegistered && !isPending) {
-            navigate("accounts/login/", { replace: false })
+        if (registrationSuccess && !isPending) {
+            navigate("/accounts/login/", { replace: true })
         }
 
-    }, [isRegistered, isPending, navigate]);
+    }, [registrationSuccess, isPending, navigate]);
 
     return (
         <>
