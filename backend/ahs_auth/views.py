@@ -9,6 +9,7 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.core.cache import cache
 from rest_framework.response import Response
 from webauthn.helpers.cose import COSEAlgorithmIdentifier
+from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRegistrationResponse
 
 from webauthn.helpers.options_to_json import options_to_json
 from webauthn.helpers.structs import (
@@ -27,7 +28,7 @@ from webauthn.authentication.verify_authentication_response import verify_authen
     VerifiedAuthentication
 
 from backend.ahs_auth.models import WebAuthnCredential, AuthMethod
-from backend.ahs_auth.webauthn import EXPECTED_RP_ID, EXPECTED_ORIGIN, SUPPORTED_ALGOS, aconvert_publickey_cbor_to_pem
+from backend.ahs_auth.webauthn import EXPECTED_RP_ID, EXPECTED_ORIGIN, SUPPORTED_ALGOS
 from backend.ahs_core.utils import adecode_json, aencode_b64
 from config import settings
 
@@ -110,6 +111,10 @@ async def webauthn_verify_registration_view(request):
     cached_value = await cache.aget(random, None)
     await cache.adelete(random)
 
+    print(json_cred,)
+    print(random)
+    print(cached_value)
+
     if not json_cred or not random:
         return Response(
             {"errors": REGISTRATION_ERROR},
@@ -122,16 +127,16 @@ async def webauthn_verify_registration_view(request):
         )
 
     challenge, username, user_id = cached_value.split('.|.')
-
-    verified_registration: VerifiedRegistration = verify_registration_response(
-        credential=json_cred,
-        expected_challenge=challenge.encode('utf-8'),
-        expected_rp_id=request.get_host(),
-        expected_origin=EXPECTED_ORIGIN,
-        supported_pub_key_algs=SUPPORTED_ALGOS,
-    )
-
-    if not verified_registration.user_verified:
+    print(challenge, username, user_id)
+    try:
+        verified_registration: VerifiedRegistration = verify_registration_response(
+            credential=json_cred,
+            expected_challenge=challenge.encode('utf-8'),
+            expected_rp_id=request.get_host(),
+            expected_origin=EXPECTED_ORIGIN,
+            supported_pub_key_algs=SUPPORTED_ALGOS,
+        )
+    except InvalidRegistrationResponse as e:
         return Response(
             {"errors": REGISTRATION_ERROR},
             status=400,
@@ -145,11 +150,10 @@ async def webauthn_verify_registration_view(request):
 
     auth_method = await AuthMethod.objects.aget(name="webauthn")
     await new_user.available_auth.aadd(auth_method)
-    cred_pubkey = await aconvert_publickey_cbor_to_pem(verified_registration.credential_public_key)
 
     await new_user.webauthn_credentials.acreate(
-        credential_id=await aencode_b64(verified_registration.credential_id, url_safe=True),
-        public_key=cred_pubkey,
+        credential_id=(await aencode_b64(verified_registration.credential_id, url_safe=True)).encode('utf-8'),
+        public_key=verified_registration.credential_public_key,
         credential_type=verified_registration.credential_type.name,
         device_type=verified_registration.credential_device_type.name,
         sign_count=verified_registration.sign_count,
