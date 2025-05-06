@@ -49,6 +49,7 @@ class AHSUserAdmin(UserAdmin):
 @admin.register(AuthMethod)
 class AuthMethodAdmin(admin.ModelAdmin):
     model = AuthMethod
+    list_display = ('name',)
 
 
 @admin.register(WebAuthnCredential)
