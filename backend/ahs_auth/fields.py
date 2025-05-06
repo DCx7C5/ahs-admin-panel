@@ -1,12 +1,13 @@
-from cryptography.hazmat.primitives import serialization
-from cryptography.exceptions import InvalidKey
+
 from django.db.models.fields import BinaryField, UUIDField
+
+from backend.ahs_auth.webauthn import convert_publickey_pem_to_cbor, convert_publickey_cbor_to_pem
 
 
 class WebAuthnCredentialId(UUIDField):
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('max_length', 36)
+        kwargs.setdefault('max_length', 48)
         super().__init__(*args, **kwargs)
 
 
@@ -21,13 +22,16 @@ class WebAuthnPublicKeyField(BinaryField):
         self.validate_on_save = kwargs.pop("validate_on_save", True)  # Optional validation control
         super().__init__(*args, **kwargs)
 
-    def validate(self, value, model_instance):
+    def from_db_value(self, value, expression, connection):
+        return convert_publickey_pem_to_cbor(value)
+
+    def get_prep_value(self, value: bytes | str) -> bytes | None:
         """
-        Validate the PEM format of the public key before saving to the database.
+            Converts the given CBOR-encoded public key value to PEM format before storing it in the database.
         """
-        if self.validate_on_save and value:
-            try:
-                serialization.load_pem_public_key(value.encode())
-            except (ValueError, InvalidKey):
-                raise ValueError(f"Invalid public key in {self.attname}.")
-        return super().validate(value, model_instance)
+        if value is None:
+            return None
+
+        if isinstance(value, str):
+            value = value.encode("utf-8")
+        return convert_publickey_cbor_to_pem(value)
