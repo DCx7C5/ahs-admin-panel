@@ -71,7 +71,6 @@ INSTALLED_APPS = [
     'backend.apps.osint',
     'backend.apps.system',
     'backend.apps.system.cpu',
-    'backend.apps.system.filesystem',
     'backend.apps.system.docker',
     'backend.apps.system.security',
     'backend.apps.workspaces',
