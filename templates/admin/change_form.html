@@ -1,28 +1,30 @@
 {% extends "admin/change_form.html" %}
-{% if original.is_superuser %}
+
     {% block object-tools-items %}
-        {% if original and not original.has_webauthn_creds %}
-            {{ webauthn_username|json_script:'webauthn-username' }}
-            {{ webauthn_useruid|json_script:'webauthn-useruid' }}
-            <li>
-                <!-- Select input to choose between platform and cross-platform -->
-                <div>
-                    <label for="authenticatorType" style="margin-right: 10px;">WebAuthn Type:</label>
-                    <select id="authenticatorType" name="authenticatorType">
-                        <option value="platform">Platform</option>
-                        <option value="cross-platform">Cross-Platform</option>
-                    </select>
-                </div>
-            </li>
-            <li>
-                <a href="{% url 'admin:add_webauthn' original.pk %}"
-                   class="historylink"
-                   id="addWebauthnButton"
-                >
-                    Add WebAuthn
-                </a>
-            </li>
-        {% endif %}
-        {{ block.super }}
+    {% if original and original.is_superuser and not original.has_webauthn_creds %}
+        {% block extra_head %}
+    {{ block.super }}
+    {{ webauthn_username|json_script:'webauthn-username' }}
+    {{ webauthn_useruid|json_script:'webauthn-useruid' }}
     {% endblock %}
-{% endif %}
+        <li>
+            <!-- Select input to choose between platform and cross-platform -->
+            <div>
+                <label for="authenticatorType" style="margin-right: 10px;">WebAuthn Type:</label>
+                <select id="authenticatorType" name="authenticatorType">
+                    <option value="platform">Platform</option>
+                    <option value="cross-platform">Cross-Platform</option>
+                </select>
+            </div>
+        </li>
+        <li>
+            <a href="{% url 'admin:add_webauthn' original.pk %}"
+               class="historylink"
+               id="addWebauthnButton"
+            >
+                Add WebAuthn
+            </a>
+        </li>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}

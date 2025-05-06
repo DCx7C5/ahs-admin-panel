@@ -66,60 +66,79 @@ const cleanUpEventListeners = async () => {
             const userName = JSON.parse(document.getElementById("webauthn-username").textContent);
             const userUid = JSON.parse(document.getElementById("webauthn-useruid").textContent);
 
+            console.log(userName, userUid);
             addWebAuthnButton.addEventListener("click", async (event) => {
-                const authenticatorType = document.getElementById("authenticatorType").value;
-                console.log(authenticatorType);
                 event.preventDefault(); // Prevent page navigation
 
-                const dataOpt = new URLSearchParams();
-                dataOpt.append('username', userName);
-                dataOpt.append('useruid', userUid);
-                dataOpt.append('authattachment', authenticatorType);
-                              const optResponse = fetch(optUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json; charset=utf-8'},
-                body: JSON.stringify(dataOpt),
-              }).then(
-                response => response.json()
-              )
+                const authenticatorType = document.getElementById("authenticatorType").value;
 
 
-
-            const attestation = await navigator.credentials.create({publicKey: options});
-            console.log("ATTESTATION", attestation);
-            const authResponse = attestation.response;
-
-            const serializedCredential = JSON.stringify({
-                id: attestation.id,
-                rawId: base64UrlEncode(attestation.rawId),
-                response: {
-                    clientDataJSON: base64UrlEncode(authResponse.clientDataJSON),
-                    attestationObject: base64UrlEncode(authResponse.attestationObject),
-                },
-                type: attestation.type,
-            })
-
-            const data = new URLSearchParams();
-            data.append('credential', serializedCredential);
-            data.append('random', random);
-
-            const verifyResponse = fetch(verifyUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json; charset=utf-8'},
-                body: JSON.stringify(data),
-            }).then(
-                response => response.json()
-            )
-            console.log(attestation);
-
-                console.log(verifyResponse);
+                const optData = JSON.stringify({
+                    pubkeycredparams: [-7, -8, -257],
+                    authattachment: authenticatorType,
+                    username: userName,
+                })
+                let decResponse;
                 try {
-                    alert("WebAuthn credential successfully added to Administrator account");
+                    console.log("OPT DATA", optData);
+                    const response = await fetch(optUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json; charset=utf-8'},
+                        body: optData,
+                    });
+                    if (!response.ok) throw new Error('Request failed');
+                    decResponse = await response.json();
                 } catch (error) {
-                    console.error("WebAuthn error:", error);
-                    alert(`Error: ${error.message}`);
+                    console.error(error);
+                    return;
                 }
-                await cleanUpEventListeners();
+                const options = JSON.parse(decResponse.options);
+                options.challenge = base64UrlDecode(options.challenge);
+                console.log("CHALLENGE", options.challenge);
+                options.user.id = base64UrlDecode(options.user.id);
+                console.log("USER ID", options.user.id);
+                options.authenticatorSelection.requireResidentKey = false;
+                console.log('OPTIONS',options);
+                const attestation = await navigator.credentials.create({publicKey: options});
+
+                console.log("ATTESTATION", attestation);
+                const authResponse = attestation.response;
+
+                const serializedCredential = JSON.stringify({
+                    id: attestation.id,
+                    rawId: base64UrlEncode(attestation.rawId),
+                    response: {
+                        clientDataJSON: base64UrlEncode(authResponse.clientDataJSON),
+                        attestationObject: base64UrlEncode(authResponse.attestationObject),
+                    },
+                    type: attestation.type,
+                })
+
+                let verifyResp;
+                try {
+                    const response = await fetch(verifyUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json; charset=utf-8'},
+                        body: JSON.stringify({
+                            credential: serializedCredential,
+                            random: decResponse.random,
+                        })
+                    });
+                    if (!response.ok) throw new Error('Request failed');
+                    verifyResp = await response.json();
+                } catch (error) {
+                    console.error(error);
+                    return;
+                }
+
+                console.log(verifyResp);
+                    try {
+                        alert("WebAuthn credential successfully added to Administrator account");
+                    } catch (error) {
+                        console.error("WebAuthn error:", error);
+                        alert(`Error: ${error.message}`);
+                    }
+                    await cleanUpEventListeners();
             });
         }
     });

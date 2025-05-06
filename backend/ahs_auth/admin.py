@@ -1,19 +1,8 @@
-import secrets
-
-from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.urls import path
-from webauthn import generate_registration_options, options_to_json
-from webauthn.helpers.cose import COSEAlgorithmIdentifier
-from webauthn.helpers.structs import (
-    PublicKeyCredentialCreationOptions,
-    AttestationConveyancePreference,
-    AuthenticatorSelectionCriteria,
-    ResidentKeyRequirement,
-    UserVerificationRequirement,
-)
+
 
 from backend.ahs_auth.models import WebAuthnCredential, AuthMethod
 
@@ -30,45 +19,16 @@ class AHSUserAdmin(UserAdmin):
     show_full_result_count = True
 
     class Media:
-        ts = ('admin/js/addSuperUserWebAuthn.ts',)
+        js = ('admin/js/addSuperUserWebAuthn.js',)
 
     def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
         """
         Extends the default method to add custom context to the change form.
         """
-
-        if obj.is_superuser and not obj.auth_methods.filter(name="webauthn").exists():
-
-            challenge = secrets.token_bytes(128).hex()
-            user_id = f"{obj.uid}"
-            username = obj.username
-
-            options: PublicKeyCredentialCreationOptions = generate_registration_options(
-                rp_name=settings.SITE_NAME,
-                rp_id=request.get_host(),
-                user_id=user_id.encode('utf-8'),
-                user_name=username,
-                user_display_name=username,
-                challenge=challenge.encode('utf-8'),
-                timeout=60000,
-                exclude_credentials=[],
-                supported_pub_key_algs=[
-                    COSEAlgorithmIdentifier(-7),
-                    COSEAlgorithmIdentifier(-8),
-                    COSEAlgorithmIdentifier(-257)
-                ],
-                attestation=AttestationConveyancePreference.NONE,
-                authenticator_selection=AuthenticatorSelectionCriteria(
-                    resident_key=ResidentKeyRequirement.PREFERRED,
-                    user_verification=UserVerificationRequirement.PREFERRED,
-                ),
-            )
-
-            json_options = options_to_json(options=options)
-
-            # Add the custom options and data to the context passed to the template
+        if obj.is_superuser and not obj.available_auth.filter(name="webauthn").exists():
             context.update({
-                "webauthn_options": json_options,  # Dynamic data for WebAuthn
+                "webauthn_username": obj.username,
+                "webauthn_useruid": f"{obj.uid}",
             })
 
         # Call the parent method with updated context
@@ -81,8 +41,9 @@ class AHSUserAdmin(UserAdmin):
         ]
         return custom_urls + urls
 
-    def add_webauthn(self):
-        pass
+    def add_webauthn(self, request, object_id, form_url='', extra_context=None):
+        return self.response_change(request, obj=User.objects.get(pk=object_id))
+
 
 
 @admin.register(AuthMethod)

@@ -1,4 +1,4 @@
-import {apiClient} from "../../hooks/useAHSApi";
+import {apiClient} from "../../hooks/useApiAxios";
 import React, {use, useActionState, useEffect, useState} from "react";
 import {CForm, CFormInput, CFormLabel} from "@coreui/react";
 import {DataContext} from "../../components/DataProvider";
@@ -38,12 +38,19 @@ export const WebAuthnRegistration: React.FC = () => {
             // Get publickey algorithm types from form
             const pkCredParams = pubKeyCredParams.filter((param) => param.selected).map((param) => param.value);
 
-            // Get registration options from server
-            const optResponse: WebAuthnOptionsResponse = await api?.post('api/auth/webauthn/register/', {
-                username: JSON.stringify(userName),
-                pubkeycredparams: JSON.stringify(pkCredParams),
-                authattachment: JSON.stringify(authAttachment),
+            const optData = JSON.stringify({
+                pubkeycredparams: pkCredParams,
+                authattachment: authAttachment,
+                username: userName,
             })
+
+            console.log("OPTDATA: ", optData)
+
+            // Get registration options from server
+            const optResponse: WebAuthnOptionsResponse = await api?.post(
+                'api/auth/webauthn/register/',
+                optData,
+            )
             if (!optResponse.random || !optResponse.options) {
                 return { ...prevState, error: "Failed to get options." };
             }
@@ -74,10 +81,10 @@ export const WebAuthnRegistration: React.FC = () => {
 
             const verifyResponse: WebAuthnRegistrationVerifyResponse = await api?.post(
                 'api/auth/webauthn/register/verify/',
-                {
+                JSON.stringify({
                     credential: serializedCredential,
                     random: optResponse.random,
-                })
+                }))
 
             if (verifyResponse && verifyResponse.status === 200) {
                 setIsRegistered(true);
@@ -86,7 +93,6 @@ export const WebAuthnRegistration: React.FC = () => {
             } else {
                 return { ...prevState, error: "Failed to register." };
             }
-
         },
         { error: null }
     );
@@ -101,7 +107,7 @@ export const WebAuthnRegistration: React.FC = () => {
 
     useEffect(() => {
         if (isRegistered && !isPending) {
-            navigate("accounts/login/", { replace: true })
+            navigate("accounts/login/", { replace: false })
         }
 
     }, [isRegistered, isPending, navigate]);

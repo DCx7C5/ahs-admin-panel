@@ -203,22 +203,16 @@ async def webauthn_verify_authentication_view(request):
     cached_value = await cache.aget(random, None)
     await cache.adelete(random)
 
-    try:
-        username = await adecode_json(data.get("username"))
-    except Exception as e:
-        return Response(
-            {"errors": AUTHENTICATION_ERROR.format(e)},
-            status=400
-        )
-
     if not cached_value:
         return Response(
             {"errors": "Authentication timed out. Please try again."},
             status=400
         )
 
+    username = data.get("username")
     challenge = cached_value
 
+    print(username)
     user: AbstractBaseUser | User = await User.objects.aget(username=username)
 
     if not user:
@@ -230,7 +224,6 @@ async def webauthn_verify_authentication_view(request):
     user_cred = await adecode_json(json_cred)
 
     cred_id = user_cred.get("id")
-
 
     cred = await WebAuthnCredential.objects.filter(
         user__username__exact=username,
