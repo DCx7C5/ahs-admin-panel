@@ -20,6 +20,7 @@ class AuthMethod(Model):
         ('onelogin', 'OneLogin'),
         ('custom', 'Custom'),
         ('webauthn', 'WebAuthn'),
+        ('keybase', 'Keybase'),
     )
     name = CharField(
         max_length=255,
