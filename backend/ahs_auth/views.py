@@ -27,8 +27,8 @@ from webauthn.authentication.generate_authentication_options import generate_aut
 from webauthn.authentication.verify_authentication_response import verify_authentication_response, \
     VerifiedAuthentication
 
-from backend.ahs_auth.models import WebAuthnCredential
-from backend.ahs_auth.webauthn import EXPECTED_RP_ID, EXPECTED_ORIGIN, SUPPORTED_ALGOS
+from backend.ahs_auth.models import WebAuthnCredential, AuthMethod
+from backend.ahs_auth.webauthn import EXPECTED_RP_ID, EXPECTED_ORIGIN, SUPPORTED_ALGOS, aconvert_publickey_cbor_to_pem
 from backend.ahs_core.utils import adecode_json, aencode_b64
 from config import settings
 
@@ -42,14 +42,8 @@ AUTHENTICATION_ERROR = "Authentication error. Please try again." if not settings
 
 @api_view(['POST'])
 async def webauthn_register_view(request):
-    try:
-        data = await adecode_json(request.data)
-    except Exception as e:
-        return Response(
-            {"errors": REGISTRATION_ERROR.format(e)},
-            status=400,
-        )
-    print(data)
+    data = request.data
+
     try:
         username = data.get('username')
         user_pubkey_cred_params = data.get('pubkeycredparams')
@@ -66,7 +60,8 @@ async def webauthn_register_view(request):
             status=400,
         )
 
-    if await User.objects.filter(username=username).aexists():
+    user_query = User.objects.filter(username=username)
+    if await user_query.aexists() and not (await user_query.aget()).is_superuser:
         return Response(
             {"errors": "Registration error. Username already exists. Please try again."},
             status=400,
@@ -110,19 +105,9 @@ async def webauthn_register_view(request):
 
 @api_view(['POST'])
 async def webauthn_verify_registration_view(request):
-    try:
-        json_data = request.data
-        data = await adecode_json(json_data)
-    except Exception as e:
-        return Response(
-            {"errors": REGISTRATION_ERROR.format(e)},
-            status=400,
-        )
-
+    data = request.data
     json_cred = data.get("credential")
     random = data.get("random", None)
-
-
     cached_value = await cache.aget(random, None)
     await cache.adelete(random)
 
@@ -153,17 +138,22 @@ async def webauthn_verify_registration_view(request):
             status=400,
         )
 
-    new_user = await User.objects.acreate(
+    new_user, created = await User.objects.aget_or_create(
         username=username,
-        uid=user_id,
     )
 
-    await new_user.auth_methods.aadd("webauthn")
+    if created:
+        new_user.uid = user_id
+        await new_user.asave()
+
+    auth_method = await AuthMethod.objects.aget(name="webauthn")
+    await new_user.available_auth.aadd(auth_method)
+    cred_pubkey = await aconvert_publickey_cbor_to_pem(verified_registration.credential_public_key)
 
     await new_user.webauthn_credentials.acreate(
-        cred_id=await aencode_b64(verified_registration.credential_id),
-        pub_key=verified_registration.credential_public_key,
-        cred_type=verified_registration.credential_type.name,
+        credential_id=await aencode_b64(verified_registration.credential_id),
+        public_key=cred_pubkey,
+        credential_type=verified_registration.credential_type.name,
         device_type=verified_registration.credential_device_type.name,
         sign_count=verified_registration.sign_count,
     )

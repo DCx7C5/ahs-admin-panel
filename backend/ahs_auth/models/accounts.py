@@ -204,7 +204,7 @@ class AHSUser(AbstractBaseUser, PermissionsMixin):
         return reverse('ahs_auth:user-detail', kwargs={'pk': self.pk})
 
     def has_webauthn_creds(self):
-        return self.webauthn_credentials.exists()
+        return self.available_auth.filter(name='webauthn').exists()
 
     async def ahas_webauthn_creds(self):
-        return await self.webauthn_credentials.aexists()
+        return await self.available_auth.filter(name='webauthn').aexists()

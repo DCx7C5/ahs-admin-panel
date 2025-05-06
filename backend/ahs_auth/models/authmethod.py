@@ -9,7 +9,18 @@ from django.utils.translation import gettext as _
 
 
 class AuthMethod(Model):
-
+    AUTHMETHOD_TYPE_CHOICES = (
+        ('password', 'Password'),
+        ('email', 'Email'),
+        ('google', 'Google'),
+        ('facebook', 'Facebook'),
+        ('github', 'GitHub'),
+        ('twitter', 'Twitter'),
+        ('apple', 'Apple'),
+        ('onelogin', 'OneLogin'),
+        ('custom', 'Custom'),
+        ('webauthn', 'WebAuthn'),
+    )
     name = CharField(
         max_length=255,
         editable=False,
@@ -17,7 +28,8 @@ class AuthMethod(Model):
         help_text=_("The name of the authentication method."),
         null=False,
         blank=True,
-        default=None
+        default='webauthn',
+        choices=AUTHMETHOD_TYPE_CHOICES,
     )
 
     objects = Manager()
