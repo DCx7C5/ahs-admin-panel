@@ -16,7 +16,6 @@ from backend.ahs_auth.models.authmethod import AuthMethod
 
 from backend.ahs_endpoints.models import EndPoint
 from backend.ahs_network.hosts.models import Host
-from backend.ahs_network.ipaddresses.models import IPAddress
 
 from backend.apps.bookmarks.models import BookmarksProfile
 from backend.apps.workspaces.models import Workspace
@@ -25,50 +24,6 @@ from secrets import compare_digest
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
-
-
-def populate_endpoints():
-    """
-    Automatically populates the `ahs_core EndPoint` table with all ahs_endpoints from the URL resolver.
-    Any duplicate entries will be skipped.
-    """
-    resolver = get_resolver()  # Get the URL resolver (all registered URLs)
-
-    def extract_paths(urlpatterns, parent=None):
-        """
-        Recursively extract all paths from the urlpatterns.
-        :param urlpatterns: List of URL patterns.
-        :param parent: Parent `EndPoint` instance for hierarchical nesting (None for root).
-        """
-        for pattern in urlpatterns:
-            if hasattr(pattern, "url_patterns"):  # Handles included URL patterns
-                # Create a top-level endpoint for the included namespace
-                if hasattr(pattern, 'namespace') and pattern.namespace:
-                    parent_endpoint, _ = EndPoint.objects.get_or_create(
-                        path=f"{pattern.namespace}/",  # Assign the namespace as the path
-                        parent=parent,
-                        defaults={"active": True, "order": 0}
-                    )
-                else:
-                    parent_endpoint = parent
-
-                # Recursively process included patterns
-                extract_paths(pattern.url_patterns, parent=parent_endpoint)
-            elif hasattr(pattern, "pattern"):
-                # Handle individual patterns (leaf nodes)
-                endpoint_path = str(pattern.pattern)
-                if not endpoint_path.endswith("/"):  # Ensure the path has a trailing slash
-                    endpoint_path += "/"
-
-                # Create the endpoint if it doesn't already exist
-                EndPoint.objects.get_or_create(
-                    path=endpoint_path,
-                    parent=parent,
-                    defaults={"active": True, "order": 0}
-                )
-
-    # Start extracting ahs_endpoints from the root URL resolver
-    extract_paths(resolver.url_patterns)
 
 
 class Command(BaseCommand):
@@ -127,7 +82,7 @@ class Command(BaseCommand):
             self.populate_bookmarksprofile_table()
             self.populate_host_and_ipaddress_table()
             self.populate_apps_table()
-            populate_endpoints()
+            self.populate_endpoints()
             self.load_bookmark_fixtures()
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"An error occurred: {e}"))
@@ -165,6 +120,49 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Successfully populated auth_accounts_authmethods table."))
         else:
             self.stdout.write(self.style.SUCCESS("AuthMethod models found. Skipping creation."))
+
+    def populate_endpoints(self):
+        """
+        Automatically populates the `ahs_core EndPoint` table with all ahs_endpoints from the URL resolver.
+        Any duplicate entries will be skipped.
+        """
+        resolver = get_resolver()  # Get the URL resolver (all registered URLs)
+
+        def extract_paths(urlpatterns, parent=None):
+            """
+            Recursively extract all paths from the urlpatterns.
+            :param urlpatterns: List of URL patterns.
+            :param parent: Parent `EndPoint` instance for hierarchical nesting (None for root).
+            """
+            for pattern in urlpatterns:
+                if hasattr(pattern, "url_patterns"):  # Handles included URL patterns
+                    # Create a top-level endpoint for the included namespace
+                    if hasattr(pattern, 'namespace') and pattern.namespace:
+                        parent_endpoint, _ = EndPoint.objects.get_or_create(
+                            path=f"{pattern.namespace}/",  # Assign the namespace as the path
+                            parent=parent,
+                            defaults={"active": True, "order": 0}
+                        )
+                    else:
+                        parent_endpoint = parent
+
+                    # Recursively process included patterns
+                    extract_paths(pattern.url_patterns, parent=parent_endpoint)
+                elif hasattr(pattern, "pattern"):
+                    # Handle individual patterns (leaf nodes)
+                    endpoint_path = str(pattern.pattern)
+                    if not endpoint_path.endswith("/"):  # Ensure the path has a trailing slash
+                        endpoint_path += "/"
+
+                    # Create the endpoint if it doesn't already exist
+                    EndPoint.objects.get_or_create(
+                        path=endpoint_path,
+                        parent=parent,
+                        defaults={"active": True, "order": 0}
+                    )
+
+        # Start extracting ahs_endpoints from the root URL resolver
+        extract_paths(resolver.url_patterns)
 
     def populate_apps_table(self):
         """
@@ -274,10 +272,10 @@ class Command(BaseCommand):
             )
             extentry = host.ip_addresses.filter(address=external_ip)
             locentry = host.ip_addresses.filter(address="127.0.0.1")
-            if not extentry.exists():
-                host.ip_addresses.create(address=external_ip)
             if not locentry.exists():
                 host.ip_addresses.create(address="127.0.0.1")
+            if not extentry.exists():
+                host.ip_addresses.create(address=external_ip)
             host.save()
 
             self.stdout.write(self.style.SUCCESS("Successfully populated core_host table."))
