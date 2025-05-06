@@ -65,12 +65,10 @@ const cleanUpEventListeners = async () => {
             const userName = JSON.parse(document.getElementById("webauthn-username").textContent);
             const userUid = JSON.parse(document.getElementById("webauthn-useruid").textContent);
 
-            console.log(userName, userUid);
             addWebAuthnButton.addEventListener("click", async (event) => {
                 event.preventDefault(); // Prevent page navigation
 
                 const authenticatorType = document.getElementById("authenticatorType").value;
-
 
                 const optData = JSON.stringify({
                     pubkeycredparams: [-7, -8, -257],
@@ -79,7 +77,6 @@ const cleanUpEventListeners = async () => {
                 })
                 let decResponse;
                 try {
-                    console.log("OPT DATA", optData);
                     const response = await fetch(optUrl, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json; charset=utf-8'},
@@ -93,14 +90,10 @@ const cleanUpEventListeners = async () => {
                 }
                 const options = JSON.parse(decResponse.options);
                 options.challenge = base64Decode(options.challenge);
-                console.log("CHALLENGE", options.challenge);
                 options.user.id = base64Decode(options.user.id);
-                console.log("USER ID", options.user.id);
                 options.authenticatorSelection.requireResidentKey = false;
-                console.log('OPTIONS',options);
                 const attestation = await navigator.credentials.create({publicKey: options});
 
-                console.log("ATTESTATION", attestation);
                 const authResponse = attestation.response;
 
                 const serializedCredential = JSON.stringify({
@@ -125,19 +118,19 @@ const cleanUpEventListeners = async () => {
                     });
                     if (!response.ok) throw new Error('Request failed');
                     verifyResp = await response.json();
+                    console.log(verifyResp);
                 } catch (error) {
                     console.error(error);
                     return;
                 }
 
-                console.log(verifyResp);
-                    try {
-                        alert("WebAuthn credential successfully added to Administrator account");
-                    } catch (error) {
-                        console.error("WebAuthn error:", error);
-                        alert(`Error: ${error.message}`);
-                    }
-                    await cleanUpEventListeners();
+                try {
+                    alert("WebAuthn credential successfully added to Administrator account");
+                } catch (error) {
+                    console.error("WebAuthn error:", error);
+                    alert(`Error: ${error.message}`);
+                }
+                await cleanUpEventListeners();
             });
         }
     });
