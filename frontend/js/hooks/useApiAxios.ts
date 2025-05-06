@@ -1,6 +1,5 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { useCallback, useState } from "react";
-import {base64UrlEncode} from "../components/utils";
 
 type JsonString = string;
 type rdKey = string;
@@ -34,18 +33,6 @@ export const useApiAxios = (): apiClient => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    function encodeTypedArrays(obj: requestData) {
-        const isTypedArray = (value: rdValue) => ArrayBuffer.isView(value);
-
-        return Object.fromEntries(
-            Object.entries(obj).map(([key, value]) =>
-            isTypedArray(value)
-                ? [key, base64UrlEncode(value.buffer)]
-                : [key, value]
-            )
-        );
-    }
-
     const get = useCallback(
         async (endpoint: string, data: requestData) => {
             setIsLoading(true);
@@ -62,7 +49,6 @@ export const useApiAxios = (): apiClient => {
     const post = useCallback(async (
         endpoint: string,
         data: requestData | JsonString,
-        autoEncode: boolean = false,
     ) => {
         setIsLoading(true);
         const cfg: AxiosRequestConfig = {
@@ -78,10 +64,6 @@ export const useApiAxios = (): apiClient => {
                 cfg.headers = {}
                 cfg.headers["Content-Type"] = "application/json"
             }
-        }
-
-        if (autoEncode) {
-            encodeTypedArrays(cfg.data as requestData)
         }
 
         try {
