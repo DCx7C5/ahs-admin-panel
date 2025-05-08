@@ -94,7 +94,6 @@ async def webauthn_register_view(request):
     json_options = options_to_json(options=options)
 
     await cache.aset(f"{random}", f"{challenge}.|.{username}.|.{user_id}", 120)
-    print(challenge, username, user_id, random, options, json_options, sep="|")
     return Response(
         {
             "message": "Generated registration options successfully.",
