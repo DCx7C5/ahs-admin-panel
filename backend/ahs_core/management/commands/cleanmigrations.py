@@ -7,7 +7,7 @@ from django.core.management.commands.makemigrations import Command as MakeMigrat
 from django.core.management.commands.migrate import Command as MigrateCommand
 
 from config.settings import BASE_DIR
-from .populate import Command as PopulateCommand
+from .populateall import Command as PopulateCommand
 from ...utils import Docker
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 from django.core.management import BaseCommand
 from django.core.management.commands.makemigrations import Command as MakeMigrationsCommand
 from django.core.management.commands.migrate import Command as MigrateCommand
-from backend.ahs_core.management.commands.populate import Command as PopulateCommand
+from backend.ahs_core.management.commands.populateall import Command as PopulateCommand
 from backend.ahs_core.management.commands.cleanmigrations import Command as CleanMigrationsCommand
 from backend.ahs_core.utils import get_all_core_apps, get_all_plugin_apps, Docker
 
