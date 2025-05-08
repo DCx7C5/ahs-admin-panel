@@ -4,17 +4,22 @@ from django.db import models
 from django.db.models import (
     UniqueConstraint,
     Index,
+    IntegerField,
     DateTimeField,
     Manager,
     Model,
     ForeignKey,
-    CharField,
 )
 from django.utils.translation import gettext as _
 from webauthn.helpers.structs import PublicKeyCredentialType, CredentialDeviceType
 
-from backend.ahs_auth.fields import WebAuthnPublicKeyField, WebAuthnCredentialIdField, WebAuthnCredTypeField, \
-    WebAuthnDeviceTypeField
+from backend.ahs_auth.fields import (
+    WebAuthnPublicKeyField,
+    WebAuthnCredentialIdField,
+    WebAuthnCredTypeField,
+    WebAuthnDeviceTypeField,
+)
+from backend.ahs_auth.webauthn import convert_publickey_cbor_to_pem, aconvert_publickey_cbor_to_pem
 
 User = get_user_model()
 
@@ -58,7 +63,7 @@ class WebAuthnCredential(Model):
         help_text=_("The credential's public key stored in CBOR format."),
     )
 
-    sign_count = models.IntegerField(
+    sign_count = IntegerField(
         default=0,
         verbose_name="WebAuthn Sign Count",
         help_text=_("The number of times the credential has been used for sign operations."),
@@ -119,3 +124,10 @@ class WebAuthnCredential(Model):
             Index(fields=['user', 'credential_id', 'credential_type'], name='user_credid_credtype_index'),
             Index(fields=['user', 'credential_id', 'public_key'], name='user_credid_pubkey_index'),
         ]
+
+    @property
+    def pem_public_key(self):
+        return convert_publickey_cbor_to_pem(self.public_key).decode('utf-8')
+
+    async def aget_pem_public_key(self):
+        return (await aconvert_publickey_cbor_to_pem(self.public_key)).decode('utf-8')

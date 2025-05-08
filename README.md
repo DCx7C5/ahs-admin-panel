@@ -33,7 +33,7 @@ The following essential Django apps serve as the foundation of the project:
   - **[domains](backend/ahs_network/domains)**: Handles domain management.  
   - **[hosts](backend/ahs_network/hosts)**: Manages host-related operations.  
   - **[ipaddresses](backend/ahs_network/ipaddresses)**: Handles IP address functionalities.  
-- **[ahs_socket_conns](backend/ahs_socket_conns)**: Socket-based communication handling.  
+- **[ahs_socket_conns](backend/ahs_network/socket_conns)**: Socket-based communication handling.  
 - **[ahs_tasks](backend/ahs_tasks)**: Manages asynchronous tasks and background processes.  
 - **[ahs_workers](backend/ahs_workers)**: Implements worker processes for distributed task execution.  
 

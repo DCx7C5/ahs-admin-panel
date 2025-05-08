@@ -19,7 +19,6 @@ SECRET_KEY = environ.get('SECRET_KEY')
 
 RUNTIME_SECRET_KEY = secrets.token_urlsafe(48)
 
-
 INSTALLED_APPS = [
     # Core Apps
     'backend.ahs_auth',
@@ -58,10 +57,11 @@ INSTALLED_APPS = [
     'backend.ahs_network.domains',
     'backend.ahs_network.hosts',
     'backend.ahs_network.ipaddresses',
+    'backend.ahs_network.http',
+    'backend.ahs_network.socket_conns',
     'backend.ahs_channels',
     'backend.ahs_endpoints',
     'backend.ahs_settings',
-    'backend.ahs_socket_conns',
     'backend.ahs_tasks',
     'backend.ahs_workers',
 
@@ -73,10 +73,10 @@ INSTALLED_APPS = [
     'backend.apps.system.cpu',
     'backend.apps.system.docker',
     'backend.apps.system.security',
-    'backend.apps.workspaces',
     'backend.apps.xapi',
 
 ]
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(environ.get('DEBUG'))
 

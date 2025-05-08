@@ -49,3 +49,10 @@ class WebAuthnAPITests(APITestCase):
         resp_json = response.json()
         self.assertTrue("options" in resp_json or "challenge" in resp_json)
 
+    def test_authentication_verify_invalid_user(self):
+        url = reverse('auth:webauthn_verify_auth')
+        response = self.client.post(url, {"username": "noexists"}, format="json")
+        self.assertIn(response.status_code, (400, 404, 403))
+
+    def test_authentication_verify_valid_user(self):
+        ...

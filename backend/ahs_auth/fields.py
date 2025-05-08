@@ -3,6 +3,7 @@ from django.db.models.fields import BinaryField
 from webauthn.helpers import parse_cbor
 from webauthn.helpers.exceptions import InvalidCBORData
 
+from backend.ahs_auth.webauthn import convert_publickey_cbor_to_pem
 from backend.ahs_core.fields import EnumField
 
 
