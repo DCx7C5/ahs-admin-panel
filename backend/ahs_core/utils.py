@@ -367,13 +367,13 @@ class Docker:
             cls._cli = None
 
 
-def encode_b64(data: str | bytes, url_safe: bool = False, encoding: str = 'utf-8') -> str:
+def encode_b64(data: str | bytes, safe: bool = False, encoding: str = 'utf-8') -> str:
     """
     Encodes the given bytes or string into a Base64 string, optionally URL-safe.
 
     Args:
         data (str | bytes): The input bytes or string to be encoded.
-        url_safe (bool): If True, use URL-safe Base64 encoding (default: False).
+        safe (bool): If True, use URL-safe Base64 encoding (default: False).
         encoding (str): The encoding to use for strings (default: 'utf-8').
 
     Returns:
@@ -389,17 +389,17 @@ def encode_b64(data: str | bytes, url_safe: bool = False, encoding: str = 'utf-8
         raise TypeError("Input must be bytes or str")
 
     encoded = base64.b64encode(data).decode('ascii')
-    if url_safe:
+    if safe:
         encoded = encoded.replace('+', '-').replace('/', '_').rstrip('=')
 
     return encoded
 
 
-async def aencode_b64(data: str | bytes, url_safe: bool = False, encoding: str = 'utf-8') -> str:
+async def aencode_b64(data: str | bytes, safe: bool = False, encoding: str = 'utf-8') -> str:
     """
     Asynchronously encode data using Base64 encoding, optionally URL-safe.
     """
-    return await sync_to_async(encode_b64)(data, url_safe, encoding)
+    return await sync_to_async(encode_b64)(data, safe, encoding)
 
 
 def decode_b64(base64_str: str, to_str: bool = False, encoding: str = 'utf-8') -> bytes | str:
