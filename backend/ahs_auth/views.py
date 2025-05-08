@@ -20,7 +20,7 @@ from webauthn.helpers.structs import (
     AuthenticatorAttachment,
     UserVerificationRequirement,
     ResidentKeyRequirement,
-    PublicKeyCredentialDescriptor, PublicKeyCredentialType,
+    PublicKeyCredentialDescriptor,
 )
 
 from webauthn.registration.verify_registration_response import verify_registration_response, VerifiedRegistration
@@ -80,7 +80,7 @@ async def webauthn_register_view(request):
         user_name=username,
         user_display_name=username,
         challenge=challenge.encode('utf-8'),
-        timeout=60000,
+        timeout=120000,
         exclude_credentials=[],
         supported_pub_key_algs=[COSEAlgorithmIdentifier(p) for p in user_pubkey_cred_params],
         attestation=AttestationConveyancePreference.NONE,
@@ -93,7 +93,7 @@ async def webauthn_register_view(request):
 
     json_options = options_to_json(options=options)
 
-    await cache.aset(f"{random}", f"{challenge}.|.{username}.|.{user_id}", 600)
+    await cache.aset(f"{random}", f"{challenge}.|.{username}.|.{user_id}", 120)
     print(challenge, username, user_id, random, options, json_options, sep="|")
     return Response(
         {
@@ -193,14 +193,14 @@ async def webauthn_authentication_view(request):
     options = generate_authentication_options(
         rp_id=EXPECTED_RP_ID,
         challenge=challenge.encode('utf-8'),
-        timeout=600,
+        timeout=120000,
         user_verification=UserVerificationRequirement.PREFERRED,
         allow_credentials=[
             PublicKeyCredentialDescriptor(*cids) async for cids in cids_qs
         ],
     )
 
-    await cache.aset(f"{random}", f"{challenge}", 600)
+    await cache.aset(f"{random}", f"{challenge}", 120)
 
     json_options = options_to_json(options=options)
 
