@@ -26,11 +26,19 @@ export const WebAuthnAuthentication: React.FC = () => {
         async (prevState, formData) => {
             const userName = formData.get("username") as string;
 
-            const optResponse: WebAuthnOptionsResponse = await api?.post('api/auth/webauthn/')
+            // Request webauthn authentication options
+            const optResponse: WebAuthnOptionsResponse = await api?.post(
+                'api/auth/webauthn/',
+                JSON.stringify({
+                    username: userName,
+                })
+            );
+
             if (!optResponse.random || !optResponse.options) {
                 return { ...prevState, error: "Failed to get options." };
             }
 
+            //
             const options = JSON.parse(optResponse.options);
             options.challenge = base64Decode(options.challenge);
 
@@ -45,7 +53,7 @@ export const WebAuthnAuthentication: React.FC = () => {
                 rawId: base64Encode(assertion.rawId, true),
                 response: {
                     clientDataJSON: base64Encode(authResponse.clientDataJSON, true),
-                    attestationObject: base64Encode(authResponse.authenticatorData, true),
+                    authenticatorData: base64Encode(authResponse.authenticatorData, true),
                     signature: base64Encode(authResponse.signature, true),
                     userHandle: authResponse.userHandle
                         ? base64Encode(authResponse.userHandle, true)

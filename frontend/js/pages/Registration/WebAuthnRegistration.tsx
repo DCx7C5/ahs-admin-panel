@@ -67,6 +67,8 @@ export const WebAuthnRegistration: React.FC = () => {
                 { publicKey: options }
             ) as PublicKeyCredential;
 
+            console.log(attestation.getClientExtensionResults())
+
             // Encode credential for server verification
             const authResponse = attestation.response as AuthenticatorAttestationResponse;
             const serializedCredential = JSON.stringify({
@@ -74,7 +76,8 @@ export const WebAuthnRegistration: React.FC = () => {
                 rawId: base64Encode(attestation.rawId, true),
                 response: {
                     clientDataJSON: base64Encode(authResponse.clientDataJSON, true),
-                    attestationObject: base64Encode(authResponse.attestationObject, true),
+                    attestationObject: base64Encode(authResponse.getAuthenticatorData(), true),
+
                 },
                 type: attestation.type,
             })
