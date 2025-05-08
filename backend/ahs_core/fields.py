@@ -1,5 +1,4 @@
-from django.core.exceptions import ValidationError
-from django.db.models import CharField, IntegerField
+from django.db.models import CharField
 
 
 class NameField(CharField):
@@ -21,3 +20,30 @@ class NameField(CharField):
         # Call the parent class's validate() method
         super().validate(value, model_instance)
 
+
+class EnumField(CharField):
+    def __init__(self, enum, *args, **kwargs):
+        self.enum = enum
+        kwargs.setdefault('max_length', 32)
+        super().__init__(*args, **kwargs)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        # Add the enum argument so migrations work!
+        kwargs['enum'] = self.enum
+        return name, path, args, kwargs
+
+    def from_db_value(self, value, expression, connection):
+        if value is None:
+            return value
+        return self.enum(value)
+
+    def to_python(self, value):
+        if isinstance(value, self.enum) or value is None:
+            return value
+        return self.enum(value)
+
+    def get_prep_value(self, value):
+        if isinstance(value, self.enum):
+            return value.value
+        return value
