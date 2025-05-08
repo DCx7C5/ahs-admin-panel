@@ -55,9 +55,6 @@ async def awrite_chunks(file: PathLike, chunks: list[bytes]):
             await f.flush()
 
 
-
-
-
 class UnixFilesystem(Model):
     name = NameField(
         max_length=255,
@@ -67,7 +64,7 @@ class UnixFilesystem(Model):
     )
 
     host = ForeignKey(
-        'ahs_core.Host',
+        'ahs_network.Host',
         on_delete=SET_NULL,
         null=True,
         blank=True,
@@ -77,9 +74,9 @@ class UnixFilesystem(Model):
     )
 
     class Meta:
-        app_label = 'ahs_core'
+        app_label = 'ahs_filesys'
         ordering = ['name']
-        db_table = 'ahs_core_filesys_unixfilesystem'
+        db_table = 'ahs_core_filesys_unixfilesystems'
         verbose_name = _("UNIX Filesystem")
         verbose_name_plural = _("UNIX Filesystems")
 
@@ -240,12 +237,12 @@ class UnixFileSystemPath(Model, TreeMixin):
     objects = UnixPathManager()
 
     class Meta:
-        app_label = 'ahs_core'
+        app_label = 'ahs_filesys'
         unique_together = (('path', 'inode_id'),)
         verbose_name = _("UNIX File")
         verbose_name_plural = _("UNIX Files")
         ordering = ['-modified', 'path']
-        db_table = 'ahs_core_filesys_unixfile'
+        db_table = 'ahs_filesys_unixfiles'
 
     def __str__(self):
         return f"{self.path} ({self.permissions})"

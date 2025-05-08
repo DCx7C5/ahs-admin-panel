@@ -19,7 +19,6 @@ class EndPointSerializer(ModelSerializer):
             return await EndPointSerializer(children, many=True).data
         return []
 
-
     async def validate_order(self, value):
         """
         Ensures the order is non-negative.

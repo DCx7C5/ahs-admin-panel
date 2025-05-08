@@ -94,7 +94,7 @@ class Domain(Model, CreationDateMixin, UpdateDateMixin):
     )
 
     class Meta:
-        app_label = 'ahs_core'
+        app_label = 'ahs_network'
         verbose_name = 'Domain Name'
         verbose_name_plural = 'Domain Names'
         ordering = ['-registration_date']

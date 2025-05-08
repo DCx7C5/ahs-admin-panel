@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-class WorkspaceManage(Manager):
+class WorkspaceManager(Manager):
     ...
 
 
@@ -28,7 +28,7 @@ class Workspace(Model):
         editable=True,
     )
 
-    objects = WorkspaceManage()
+    objects = WorkspaceManager()
 
     class Meta:
         app_label = 'ahs_core'

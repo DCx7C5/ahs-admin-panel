@@ -35,14 +35,12 @@ class IPAddress(Model):
 
     objects = IPAddressManager()
 
-
     class Meta:
-        app_label = "ahs_core"
+        app_label = "ahs_network"
         verbose_name = "IP Address"
         verbose_name_plural = "IP Addresses"
         ordering = ["address"]
-
-
+        db_table = "ahs_network_ip_addresses"
 
     def __str__(self):
         return self.address

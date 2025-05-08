@@ -10,8 +10,6 @@ from django.db.models import (
 from django.utils.translation import gettext_lazy as _
 from django.db.models.constraints import UniqueConstraint, CheckConstraint
 
-from backend.apps.workspaces.models import Workspace
-
 logger = logging.getLogger(__name__)
 
 
@@ -105,7 +103,7 @@ class Host(Model):
     )
 
     workspace = ForeignKey(
-        to=Workspace,
+        "ahs_core.Workspace",
         on_delete=CASCADE,
         related_name="hosts",
         related_query_name="host",
@@ -130,10 +128,11 @@ class Host(Model):
     objects = HostManager()
 
     class Meta:
-        app_label = "ahs_core"
+        app_label = "ahs_network"
         verbose_name = "Host"
         verbose_name_plural = "Hosts"
         ordering = ["-created_at"]
+        db_table = "ahs_network_hosts"
 
         constraints = [
             # There can only be one row where is_localhost is True

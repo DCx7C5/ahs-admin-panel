@@ -96,10 +96,10 @@ class Settings(models.Model):
 
 
     class Meta:
-        app_label = "ahs_core"
-        db_table = "ahs_core_settings"
+        app_label = "ahs_settings"
         verbose_name = _("AHS Setting")
         verbose_name_plural = _("AHS Settings")
+        db_table = "ahs_settings_settings"
         ordering = ["key"]
 
     def __str__(self):
