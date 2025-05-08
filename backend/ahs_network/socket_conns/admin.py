@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 
-from backend.ahs_socket_conns.models import SocketConnection
+from backend.ahs_network.socket_conns.models import SocketConnection
 
 
 @admin.register(SocketConnection)

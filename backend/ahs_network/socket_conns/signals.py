@@ -2,7 +2,7 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from backend.ahs_socket_conns.models import SocketConnection
+from backend.ahs_network.socket_conns.models import SocketConnection
 
 
 logger = logging.getLogger(__name__)

@@ -132,8 +132,8 @@ class SocketConnection(Model):
     )
 
     class Meta:
-        app_label = "ahs_socket_conns"
-        db_table = "ahs_core_socket_connection"
+        app_label = "ahs_network"
+        db_table = "ahs_network_socket_conns"
         verbose_name = "Socket Connection"
         verbose_name_plural = "Socket Connections"
         ordering = ['-connected_at']
