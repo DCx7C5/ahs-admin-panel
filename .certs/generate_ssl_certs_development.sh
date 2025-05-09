@@ -38,13 +38,8 @@ mkcert -ecdsa localhost 127.0.0.1
 
 echo -e "\e[1;32mRenaming key and cert file...\e[0m"
 
-for f in localhost+*-key.pem; do
-  [ -f "$f" ] && mv "$f" "localhost-key.pem"
-done
-
-for f in localhost+*.pem; do
-  [[ "$f" != "localhost-key.pem" ]] && [ -f "$f" ] && mv "$f" "localhost.pem"
-done
+mv localhost+*-key.pem localhost-key.pem
+mv localhost+*.pem localhost.pem
 
 # Copy rootCA in `pwd`
 ROOT_CA="$(mkcert -CAROOT)/rootCA.pem"
